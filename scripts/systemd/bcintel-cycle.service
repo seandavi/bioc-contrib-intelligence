@@ -1,0 +1,6 @@
+[Unit]
+Description=bcintel reactive review tick (fetch + review + draft PRs, dry-run)
+
+[Service]
+Type=oneshot
+ExecStart=/home/davsean/Documents/git/bioc-contrib-intelligence/scripts/run-cycle.sh
