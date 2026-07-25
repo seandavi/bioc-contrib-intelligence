@@ -120,6 +120,59 @@ already fetch — surface them in views/parsers):
   deps / license / version); its diff over time lives in git.bioconductor.org, not
   the thread.
 
+## Operating the bots
+
+A "bot" here is four parts: an **identity**, a **trigger**, a **react loop**, and
+an **action**. The two existing bots show the range: `bioc-issue-bot` (legacy) is
+a machine-user account driven by a server-side service that reacts mostly to
+git.bioconductor.org push hooks and reflects results into the issue;
+`github-actions[bot]` (new repo) is a GitHub App driven by in-repo Actions with
+slash commands. GitHub is the bot's output surface as much as its event source.
+
+**Identity.** Start with a machine user (a PAT on a dedicated account — simple,
+5000 req/hr). Move to a GitHub App when it's real (own identity, fine-grained
+perms, cleaner audit). For standing in as a reviewer, the App is the destination.
+
+**Trigger.** Poll (scheduled job over our incremental fetch), in-repo Actions, or
+a webhook service (App). Command-driven (`/review` in a comment) overlays any of
+them and keeps a human deciding *when* the bot acts. **Recommendation: poll.**
+Reviews take weeks, so minute-scale latency is irrelevant, and polling avoids the
+App registration, public endpoint, and signature handling.
+
+**Compute.** The deterministic layer (BiocCheck, R CMD check) needs a full
+R+Bioconductor environment. **Don't run it yourself for v1** — the SPB already
+builds every submission on three platforms and posts the result; we parse those
+into the `builds` view. Consume that output; stand up your own BiocCheck runner
+only for checks the SPB doesn't surface. This keeps the bot's compute light
+(fetch text + call the Claude API), so it can run anywhere.
+
+**The loop** (same for both bots): `event -> gather context -> decide -> act ->
+record`. The reviewer bot's action is a structured advisory comment; the manager
+bot's is a triage summary or nudge. They share the trigger, corpus, and state
+store; only decide+act differ. Guardrails: advisory-only (never write lifecycle
+labels — the core team owns those), idempotency keyed on `(issue, sha)`, and a
+dry-run stage that writes drafts to disk and posts nothing until a human signs
+off on the drafts.
+
+### States the bot reacts to
+
+Lifecycle state is read from GitHub labels (source of truth; see
+`STATE_MACHINE.md`), not mirrored. Both label vocabularies map onto four
+canonical **open** stages; terminal states get no reaction:
+
+| Canonical stage | Legacy label(s) | New-repo label(s) | Bot action | Blocking |
+|---|---|---|---|---|
+| `moderation` | `1. awaiting moderation` | `awaiting policy acceptance`, `policies-accepted` | triage briefing (DESCRIPTION, dep red-flags, precedent) | core team |
+| `pre_review` | `pre-check passed`, `pre-review` | `precheck-passed`, `assign reviewer` | pre-review advisory (BiocCheck/build findings + interop/redundancy) | reviewer |
+| `review` | `2. review in progress` | `review in progress` | deep reviewer briefing; re-review on each new build | reviewer |
+| `waiting_submitter` | `3e. pending pre-review changes`, `3d. needs interop` | `inactive review` | staleness nudge | submitter |
+| terminal (no reaction) | `3a`/`3b`/`3c` | `package accepted`/`declined` | — | — |
+
+The first cut runs in **dry-run**: it reads the fetched corpus and writes a
+Markdown briefing per open issue to `bot_out/<repo>/issue-<n>.md` instead of
+posting. The deterministic + precedent facts are real; the LLM judgment layer
+drops into the `decide` step later.
+
 ## Reference facts to pull when building
 
 - `docs/package-review-checklist.md` in `Bioconductor/Contributions` — the exact

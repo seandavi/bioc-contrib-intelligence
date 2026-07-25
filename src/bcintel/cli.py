@@ -8,7 +8,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from . import db
+from . import bot, db
 from .fetch import CONCURRENCY, REPOS, fetch
 
 DATA = Path("data")
@@ -28,11 +28,18 @@ def main(argv: list[str] | None = None) -> None:
     ps = sub.add_parser("sql", help="run DuckDB SQL over the JSONL")
     ps.add_argument("query", help="SQL to execute")
 
+    pb = sub.add_parser("bot", help="dry-run advisory bot: write Markdown briefings per open issue")
+    pb.add_argument("--repo", action="append", metavar="O/R",
+                    help="repo (repeatable; default: both trackers)")
+    pb.add_argument("--out", default="bot_out", help="output directory (default: bot_out)")
+
     a = p.parse_args(argv)
     if a.cmd == "fetch":
         fetch(a.repo or REPOS, DATA, a.limit, a.concurrency)
     elif a.cmd == "sql":
         print(db.connect().sql(a.query))
+    elif a.cmd == "bot":
+        bot.run(a.repo or REPOS, DATA, a.out)
 
 
 if __name__ == "__main__":
