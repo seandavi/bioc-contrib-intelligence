@@ -45,6 +45,13 @@ version-controlled `.dot` rendered by quarto-livefigures.
 
 ## Outcomes
 
+Every submission ends in one of the `3x` states. Acceptance dominates, but note
+the large `unknown` bucket — those are mostly older issues that closed before
+the `3a`–`3e` label scheme existed, so they carry no outcome label.
+`in_progress` is the currently-open queue. Declines are rare and, as the review
+threads show, usually reflect an editorial "not suitable for Bioconductor"
+judgement rather than a technical build failure.
+
 ```{python}
 q("""
 SELECT outcome, count(*) AS packages,
@@ -54,6 +61,11 @@ FROM packages GROUP BY 1 ORDER BY 2 DESC
 ```
 
 ## Throughput by year
+
+Submission volume by the calendar year each issue was opened, alongside how many
+of those eventually earned `3a. accepted`. Because acceptance lags submission by
+weeks to months, the most recent year's `accepted` figure understates its
+eventual total — packages submitted late in a year are often still in review.
 
 ```{python}
 q(f"""
@@ -67,6 +79,12 @@ GROUP BY 1 ORDER BY 1
 
 ## Who reviews — top actors finalizing acceptance
 
+How often each person applied the `3a. accepted` label (the bot is excluded).
+This measures *finalization*, not total review effort: much of the substantive
+work happens during core-team moderation before a community reviewer is assigned
+(see the two phases in @fig-lifecycle), so these counts skew toward core team
+members who close out acceptances rather than the full set of reviewers.
+
 ```{python}
 q(f"""
 SELECT actor AS reviewer, count(*) AS accepts_applied
@@ -79,6 +97,12 @@ GROUP BY 1 ORDER BY 2 DESC LIMIT 12
 
 ## Build health — reported build states
 
+Each build-result comment from the Single Package Builder reports a status across
+Linux, Mac, and Windows; the value here is the combined string, so
+`WARNINGS, ERROR` means the platforms disagreed. A package generates many build
+reports across successive version bumps, so this counts *reports*, not packages —
+read it as how noisy the build pipeline is, not a per-package outcome.
+
 ```{python}
 q(f"""
 SELECT state AS build_result, count(*) AS reports
@@ -88,6 +112,12 @@ GROUP BY 1 ORDER BY 2 DESC LIMIT 12
 ```
 
 ## Open pipeline — current stage of open issues
+
+For issues still open in the legacy tracker, this is their current lifecycle
+stage — the most recently applied stage label — i.e. the live reviewer/manager
+work queue. The legacy tracker is now mostly closed as submissions migrate to
+the new tracker, so this list is short; pointing the same query at
+`Bioconductor/BiocContributions` surfaces the active queue.
 
 ```{python}
 q(f"""
@@ -108,6 +138,12 @@ GROUP BY 1 ORDER BY 2 DESC
 ```
 
 ## Multi-package submissions (`AdditionalPackage:`)
+
+A single issue can carry several packages via the `AdditionalPackage: <url>`
+directive, used when packages must be reviewed and released together (e.g. a
+software package plus its companion data package). Each row is one issue and the
+number of extra packages attached — a reminder that the data model is one issue
+to *many* packages, not one-to-one.
 
 ```{python}
 q(f"""
