@@ -11,22 +11,42 @@ Two trackers are ingested (both, because they overlap during a live migration):
 | `Bioconductor/Contributions` | legacy tracker, historical corpus (2016–2025) | ~4,300 closed issues |
 | `Bioconductor/BiocContributions` | new tracker (R-universe / GitHub Actions) | ~113 issues, live |
 
-`fetch.sh` pulls **all** issues (open + closed), plus repo-wide comment and
-event streams, to append-only JSONL under `data/<repo>/`. JSONL is the source
-of truth; DuckDB reads it directly (no import step).
+For each repo we store **all** issues (open + closed) plus the **per-issue
+timeline** (comments *and* label/assign/close/cross-reference events in one
+stream) as append-only JSONL under `data/<repo>/`. JSONL is the source of truth;
+DuckDB reads it directly — no import step.
+
+> We fetch per-issue timelines rather than the repo-wide `issues/comments` and
+> `issues/events` endpoints because GitHub hard-caps those at 30k items
+> (page 300 → HTTP 422), which silently truncates the legacy repo.
+
+## Install & run
+
+Uses [uv](https://docs.astral.sh/uv/). Auth via `GITHUB_TOKEN`/`GH_TOKEN` or a
+logged-in `gh`.
 
 ```bash
-./fetch.sh                                   # backfill both repos -> data/*/*.jsonl
-duckdb -init views.sql                        # interactive SQL over the JSONL
-duckdb -init views.sql -c "SELECT state, count(*) FROM issues GROUP BY 1"
+uv sync                                   # create venv, install deps
+uv run bcintel fetch                       # backfill both repos -> data/*/*.jsonl
+uv run bcintel fetch --repo Bioconductor/BiocContributions --limit 5   # small test
+uv run bcintel sql "SELECT state, count(*) FROM issues GROUP BY 1"
 ```
 
-Views (`views.sql`): `issues`, `comments`, `events` — projected + deduped over
-the raw `*_raw` views. `events` reconstructs the label/assignment/close history
-that the plain issues endpoint drops.
+`fetch` is a single-writer async producer/consumer: httpx producers pull issue
+timelines concurrently (bounded by `--concurrency`, default 10), one consumer
+owns every write, and tenacity handles retries + rate limits. Resumable — re-run
+to continue or refresh.
 
-Re-run `fetch.sh` to refresh (full refetch; dedup happens in the views). See
-`fetch.sh` for the incremental-`since` upgrade path.
+Views (`bcintel.db`): `issues`, `comments`, `events` — projected and deduped
+over the raw JSONL. `events` reconstructs the label/assignment/close history the
+plain issues endpoint drops.
+
+## Dev
+
+```bash
+uv run ruff check src tests
+uv run pytest -q
+```
 
 ## Roadmap
 
