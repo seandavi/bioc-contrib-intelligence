@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import db, llm
+from .state import State
 
 JUDGMENT_SYSTEM = (
     "You are assisting a Bioconductor package reviewer. Bioconductor expects packages "
@@ -134,10 +135,11 @@ def _briefing(repo, num, pkg, src, sub, created, label, stage, changed, action, 
     return "\n".join(L)
 
 
-def run(repos, data_dir, out_dir, use_llm=True, limit=None):
+def run(repos, data_dir, out_dir, use_llm=True, limit=None, force=False):
     con = db.connect(str(data_dir))
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
+    state = State(out / "state.db")
     stage_keys = "', '".join(CANON)
     do_llm = use_llm and llm.available()
     log = []
@@ -150,12 +152,21 @@ def run(repos, data_dir, out_dir, use_llm=True, limit=None):
               FROM label_transitions
               WHERE repo = ? AND to_label IN ('{stage_keys}'))
             SELECT p.issue_number, p.package_name, p.source_url, p.submitter,
-                   i.created_at, c.label, c.changed_at
+                   i.created_at, c.label, c.changed_at, i.updated_at
             FROM packages p
             JOIN issues i ON i.repo = p.repo AND i.number = p.issue_number
             LEFT JOIN cur c ON c.issue_number = p.issue_number AND c.rn = 1
             WHERE p.repo = ? AND i.state = 'open'
+            ORDER BY p.issue_number
         """, [repo, repo]).fetchall()
+
+        # latest build sha per issue = this run's idempotency token (see state.py)
+        shas = {r[0]: r[1] for r in con.execute("""
+            SELECT issue_number, commit_sha FROM (
+              SELECT issue_number, commit_sha,
+                     row_number() OVER (PARTITION BY issue_number ORDER BY created_at DESC) rn
+              FROM commits WHERE repo = ?) WHERE rn = 1
+        """, [repo]).fetchall()}
 
         builds = {r[0]: (r[1], r[2]) for r in con.execute("""
             SELECT issue_number, state, report_url FROM (
@@ -184,10 +195,13 @@ def run(repos, data_dir, out_dir, use_llm=True, limit=None):
               FROM comments WHERE repo = ? AND is_bot) WHERE rn = 1
         """, [repo]).fetchall()}
 
-        wrote = 0
-        for num, pkg, src, sub, created, label, changed in issues:
-            if limit is not None and wrote >= limit:
-                break
+        wrote = skipped = 0
+        # limit caps issues *considered* so a repeat run re-visits (and skips) the same set
+        for num, pkg, src, sub, created, label, changed, updated in issues[:limit]:
+            token = shas.get(num) or f"updated:{updated}"  # no build yet -> issue mtime
+            if not force and state.seen(repo, num, token):
+                skipped += 1
+                continue
             stage = CANON.get(label, "moderation")  # open but unlabeled -> treat as moderation
             action, desc = REACT[stage]
             judgment = None
@@ -199,9 +213,12 @@ def run(repos, data_dir, out_dir, use_llm=True, limit=None):
             path = out / slug / f"issue-{num}.md"
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(md)
+            state.record(repo, num, token, stage=stage, action=action,
+                         briefing_path=str(path))
             log.append({"repo": repo, "issue": num, "stage": stage, "action": action,
                         "package": pkg, "path": str(path)})
             wrote += 1
-        print(f"== {repo}: {wrote} briefings -> {out / slug}")
+        print(f"== {repo}: {wrote} written, {skipped} skipped -> {out / slug}")
+    state.close()
     (out / "run-log.jsonl").write_text("".join(json.dumps(r) + "\n" for r in log))
     print(f"wrote {len(log)} briefings; log -> {out / 'run-log.jsonl'}")

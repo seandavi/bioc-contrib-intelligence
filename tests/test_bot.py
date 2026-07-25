@@ -58,6 +58,43 @@ def test_bot_reacts_to_open_stages_only(tmp_path):
                     "package": "pkgOpen", "path": str(out / "contributions" / "issue-1.md")}]
 
 
+def test_bot_idempotent_second_run_skips(tmp_path):
+    repo = "Bioconductor/Contributions"
+    d = tmp_path / "data"
+    _write(d / "contributions" / "issues.jsonl", [
+        {"_repo": repo, "number": 1, "title": "pkgOpen", "state": "open",
+         "state_reason": None, "user": {"login": "alice"},
+         "created_at": "2024-01-01T00:00:00Z", "updated_at": "2024-02-01T00:00:00Z",
+         "closed_at": None, "labels": [{"name": "pre-review"}], "assignees": [],
+         "comments": 1, "body": "- Repository: https://github.com/alice/pkgOpen"},
+    ])
+    _write(d / "contributions" / "timeline.jsonl", [
+        {"_repo": repo, "_issue": 1, "id": 10, "event": "labeled",
+         "actor": {"login": "lshep"}, "label": {"name": "pre-review"},
+         "created_at": "2024-01-15T00:00:00Z"},
+        {"_repo": repo, "_issue": 1, "id": 11, "event": "assigned",
+         "actor": {"login": "lshep"}, "assignee": {"login": "rev1"},
+         "created_at": "2024-01-16T00:00:00Z"},
+        {"_repo": repo, "_issue": 1, "id": 30, "event": "commented",
+         "user": {"login": "bioc-issue-bot"}, "author_association": "MEMBER",
+         "created_at": "2024-01-10T00:00:00Z", "updated_at": "2024-01-10T00:00:00Z",
+         "body": "Received a valid push; starting a build for commit id: abc1234."},
+    ])
+    out = tmp_path / "out"
+
+    bot.run([repo], d, out, use_llm=False)
+    assert (out / "contributions" / "issue-1.md").exists()
+    log1 = (out / "run-log.jsonl").read_text().splitlines()
+    assert len(log1) == 1  # briefed on first run
+
+    bot.run([repo], d, out, use_llm=False)  # same (issue, sha) -> skip
+    log2 = (out / "run-log.jsonl").read_text().splitlines()
+    assert log2 == []  # nothing written on the second run
+
+    bot.run([repo], d, out, use_llm=False, force=True)  # force re-briefs
+    assert len((out / "run-log.jsonl").read_text().splitlines()) == 1
+
+
 def test_bot_llm_judgment_wired(tmp_path, monkeypatch):
     from bcintel import llm
     repo = "Bioconductor/Contributions"

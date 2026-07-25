@@ -88,6 +88,14 @@ SELECT repo, issue_number, created_at,
 FROM comments
 WHERE body LIKE '%build results were%';
 
+-- The build commit sha per issue, parsed from the bot's "starting a build"
+-- comment. A new sha here = a new build = the bot should re-review (see state.py).
+CREATE OR REPLACE VIEW commits AS
+SELECT repo, issue_number, created_at,
+       regexp_extract(body, 'commit id: ([0-9a-f]{{7,40}})', 1) AS commit_sha
+FROM comments
+WHERE body LIKE '%starting a build for commit id%';
+
 -- The "AdditionalPackage: <url>" bundling — one issue can carry N packages.
 CREATE OR REPLACE VIEW additional_packages AS
 SELECT repo, issue_number,

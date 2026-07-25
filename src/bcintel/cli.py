@@ -49,6 +49,8 @@ def main(argv: list[str] | None = None) -> None:
     pb.add_argument("--out", default="bot_out", help="output directory (default: bot_out)")
     pb.add_argument("--no-llm", action="store_true", help="skip the Gemini judgment layer")
     pb.add_argument("--limit", type=int, help="max issues per repo (for testing / cost)")
+    pb.add_argument("--force", action="store_true",
+                    help="re-brief every issue, bypassing the idempotency store")
 
     a = p.parse_args(argv)
     _load_dotenv()
@@ -57,7 +59,8 @@ def main(argv: list[str] | None = None) -> None:
     elif a.cmd == "sql":
         print(db.connect().sql(a.query))
     elif a.cmd == "bot":
-        bot.run(a.repo or REPOS, DATA, a.out, use_llm=not a.no_llm, limit=a.limit)
+        bot.run(a.repo or REPOS, DATA, a.out, use_llm=not a.no_llm, limit=a.limit,
+                force=a.force)
 
 
 if __name__ == "__main__":
