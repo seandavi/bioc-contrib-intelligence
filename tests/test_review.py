@@ -57,3 +57,30 @@ def test_code_diff_local_repo(tmp_path):
 
     d = review.code_diff(repo, prev, head)
     assert d is not None and "0.99.1" in d
+
+
+def test_propose_patch_metadata_fixes(tmp_path):
+    repo = tmp_path / "r"
+    repo.mkdir()
+
+    def g(*a):
+        subprocess.run(["git", *a], cwd=repo, check=True, capture_output=True)
+
+    g("init", "-q")
+    g("config", "user.email", "t@t")
+    g("config", "user.name", "t")
+    (repo / "DESCRIPTION").write_text(
+        "Package: X\nVersion: 1.2.0\nRemotes: foo/bar\nbiocViews: Software\n")
+    g("add", ".")
+    g("commit", "-qm", "init")
+
+    changes, patch = review.propose_patch(repo)
+    assert any("0.99.0" in c for c in changes)
+    assert any("Remotes" in c for c in changes)
+    assert patch and "0.99.0" in patch and "-Remotes:" in patch
+    # working tree reset — DESCRIPTION unchanged on disk
+    assert "Version: 1.2.0" in (repo / "DESCRIPTION").read_text()
+
+    # no fixable issues -> nothing proposed
+    (repo / "DESCRIPTION").write_text("Package: Y\nVersion: 0.99.0\nbiocViews: Software\n")
+    assert review.propose_patch(repo) == ([], None)

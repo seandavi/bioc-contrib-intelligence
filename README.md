@@ -52,6 +52,23 @@ quarto add seandavi/quarto-livefigures   # one-time: installs the figure extensi
 uv run quarto render report.qmd          # -> report.html
 ```
 
+## Reviewing submissions
+
+```bash
+uv run bcintel bot                 # lightweight triage briefing per open issue (metadata)
+uv run bcintel review --patch      # clone each changed submission, static review + draft PR
+uv run bcintel cycle --patch       # one reactive tick: fetch, then review changed submissions
+```
+
+`review`/`cycle` are idempotent (keyed on the cloned HEAD sha), so they only act
+on submissions that changed. Output is dry-run Markdown under `bot_out/<repo>/`:
+`issue-<n>.md` (review comment) and `issue-<n>.pr.md` (proposed safe-fix PR).
+Needs `GOOGLE_API_KEY` (or `ANTHROPIC_API_KEY`) for the judgment layer.
+
+**Scheduling:** `.github/workflows/reactive-review.yml` runs `bcintel cycle` every
+6h and uploads the reviews as artifacts; or run `uv run bcintel cycle --patch`
+from cron locally.
+
 ## Dev
 
 ```bash

@@ -60,6 +60,16 @@ def main(argv: list[str] | None = None) -> None:
     pr.add_argument("--limit", type=int, help="max NEW reviews per repo (for testing / cost)")
     pr.add_argument("--force", action="store_true",
                     help="re-review even if the current sha was already reviewed")
+    pr.add_argument("--patch", action="store_true",
+                    help="also draft a proposed-PR markdown with safe metadata fixes")
+
+    pc = sub.add_parser("cycle",
+                        help="one reactive tick: fetch the corpus, then review changed submissions")
+    pc.add_argument("--repo", action="append", metavar="O/R",
+                    help="repo (repeatable; default: both trackers)")
+    pc.add_argument("--out", default="bot_out", help="output directory (default: bot_out)")
+    pc.add_argument("--limit", type=int, help="max NEW reviews per repo")
+    pc.add_argument("--patch", action="store_true", help="also draft proposed PRs")
 
     a = p.parse_args(argv)
     _load_dotenv()
@@ -71,7 +81,11 @@ def main(argv: list[str] | None = None) -> None:
         bot.run(a.repo or REPOS, DATA, a.out, use_llm=not a.no_llm, limit=a.limit,
                 force=a.force)
     elif a.cmd == "review":
-        review.run(a.repo or REPOS, DATA, a.out, limit=a.limit, force=a.force)
+        review.run(a.repo or REPOS, DATA, a.out, limit=a.limit, force=a.force, patch=a.patch)
+    elif a.cmd == "cycle":
+        repos = a.repo or REPOS
+        fetch(repos, DATA, None, CONCURRENCY)
+        review.run(repos, DATA, a.out, limit=a.limit, patch=a.patch)
 
 
 if __name__ == "__main__":

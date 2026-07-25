@@ -1,0 +1,33 @@
+# Reactive review: on a schedule, refresh the corpus and review any submission
+# that changed since last run (idempotent — a repeat over an unchanged sha is a
+# no-op). Dry-run: writes Markdown reviews + proposed PRs as build artifacts;
+# nothing is posted or filed. Needs a GOOGLE_API_KEY (or ANTHROPIC_API_KEY) secret.
+name: reactive-review
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"   # every 6 hours
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - name: reactive tick (fetch + review + draft PRs)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: uv run bcintel cycle --patch
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reviews
+          path: bot_out/**/*.md
+          if-no-files-found: ignore

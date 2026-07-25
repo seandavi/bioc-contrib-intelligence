@@ -193,15 +193,29 @@ each open issue in a review-relevant stage (`pre_review`, `review`) it:
    it to disk (dry-run). Every finding carries a concrete fix the submitter can act on.
 
 Idempotency keys on the cloned HEAD sha (stored with the review text), so the
-command is safe to run on a schedule: `bcintel fetch && bcintel review` from cron
-re-reviews only when a submission actually changed (a new sha). That is the
-reactive loop — no webhook, no standing service.
+command is safe to run on a schedule and re-reviews only when a submission
+actually changed (a new sha).
+
+**Scheduling (the reactive tick).** `bcintel cycle` = `fetch` then `review` in one
+command. Run it on any scheduler; idempotency makes repeats no-ops. The shipped
+wiring is `.github/workflows/reactive-review.yml` (cron every 6h + manual
+dispatch): it runs `bcintel cycle --patch` with a `GOOGLE_API_KEY` secret and
+uploads the Markdown reviews/PRs as artifacts. Locally, a crontab line running
+`uv run bcintel cycle --patch` does the same. No webhook, no standing service.
+
+**Proposed PRs.** `bcintel review --patch` also drafts `issue-<n>.pr.md` — a PR
+title/body plus a unified diff — for the **safe, mechanical** metadata fixes only
+(version -> 0.99.0, strip `Remotes:`): edits that cannot change behaviour. It
+generates the diff by editing the clone's working tree and resetting it. Risky
+code rewrites (sapply->vapply, T->TRUE) stay as review *suggestions*, never
+auto-patched. Everything is dry-run — written to disk, never filed.
 
 **Remaining seams** (named, not built): (a) a *detailed* check-output diff needs
 fetching + parsing the SPB build-report HTML — today we diff build *state*
-(OK/WARN/ERROR trajectory), not the BiocCheck line items; (b) turning remediation
-into **filed PRs** (generate a patch, fork, open PR) is the next increment; (c)
-flipping dry-run to *posting* is gated behind a bot identity and human sign-off.
+(OK/WARN/ERROR trajectory), not the BiocCheck line items; (b) **filing** the
+drafted PRs (fork + open PR via a bot identity) — the draft + patch exist, the
+push does not; (c) flipping dry-run to *posting* comments is gated behind a bot
+identity and human sign-off.
 
 ## Reference facts to pull when building
 
