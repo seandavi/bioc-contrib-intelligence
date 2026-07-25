@@ -1,0 +1,118 @@
+---
+title: "Bioconductor Contributions — Living Dashboard"
+subtitle: "Rebuilds from the JSONL corpus on every `quarto render`."
+format:
+  html:
+    theme: cosmo
+    toc: true
+    page-layout: full
+    df-print: kable
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{python}
+from bcintel import db
+con = db.connect()
+def q(sql):
+    return con.sql(sql).df()
+
+LEGACY = "Bioconductor/Contributions"
+```
+
+The corpus is every issue (open + closed), comment, and timeline event from the
+two submission trackers. Numbers below are computed live from the data.
+
+```{python}
+q(f"""
+SELECT repo,
+       count(*)                             AS issues,
+       count(*) FILTER (WHERE state='open')  AS open,
+       count(*) FILTER (WHERE state='closed') AS closed
+FROM issues GROUP BY 1 ORDER BY 2 DESC
+""")
+```
+
+## Submission lifecycle
+
+The state machine below is derived from the `label_transitions` view; edge
+labels are observed transition counts (see `STATE_MACHINE.md`). The figure is a
+version-controlled `.dot` rendered by quarto-livefigures.
+
+![Submission lifecycle state machine](figures/lifecycle.dot){#fig-lifecycle width=68%}
+
+## Outcomes
+
+```{python}
+q("""
+SELECT outcome, count(*) AS packages,
+       round(100.0*count(*)/sum(count(*)) OVER (), 1) AS pct
+FROM packages GROUP BY 1 ORDER BY 2 DESC
+""")
+```
+
+## Throughput by year
+
+```{python}
+q(f"""
+SELECT extract(year FROM created_at::timestamp) AS year,
+       count(*)                                   AS submitted,
+       count(*) FILTER (WHERE list_contains(labels,'3a. accepted')) AS accepted
+FROM issues WHERE repo = '{LEGACY}'
+GROUP BY 1 ORDER BY 1
+""")
+```
+
+## Who reviews — top actors finalizing acceptance
+
+```{python}
+q(f"""
+SELECT actor AS reviewer, count(*) AS accepts_applied
+FROM events
+WHERE repo = '{LEGACY}' AND event='labeled' AND label='3a. accepted'
+  AND actor <> 'bioc-issue-bot'
+GROUP BY 1 ORDER BY 2 DESC LIMIT 12
+""")
+```
+
+## Build health — reported build states
+
+```{python}
+q(f"""
+SELECT state AS build_result, count(*) AS reports
+FROM builds WHERE repo = '{LEGACY}' AND state <> ''
+GROUP BY 1 ORDER BY 2 DESC LIMIT 12
+""")
+```
+
+## Open pipeline — current stage of open issues
+
+```{python}
+q(f"""
+WITH cur AS (
+  SELECT issue_number, to_label,
+         row_number() OVER (PARTITION BY issue_number ORDER BY changed_at DESC) AS rn
+  FROM label_transitions
+  WHERE repo = '{LEGACY}' AND to_label IN (
+    '1. awaiting moderation','pre-check passed','pre-review','2. review in progress',
+    '3d. needs interop','3e. pending pre-review changes')
+)
+SELECT to_label AS current_stage, count(*) AS open_issues
+FROM cur
+WHERE rn=1 AND issue_number IN (
+  SELECT number FROM issues WHERE repo='{LEGACY}' AND state='open')
+GROUP BY 1 ORDER BY 2 DESC
+""")
+```
+
+## Multi-package submissions (`AdditionalPackage:`)
+
+```{python}
+q(f"""
+SELECT issue_number, count(*) AS bundled_packages
+FROM additional_packages WHERE repo='{LEGACY}'
+GROUP BY 1 ORDER BY 2 DESC LIMIT 8
+""")
+```

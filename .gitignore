@@ -5,3 +5,16 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
+
+figures/*.svg
+figures/*.png
+
+/.quarto/
+**/*.quarto_ipynb
+
+# quarto generated
+/.quarto/
+report.html
+report_files/
+_livefigures/
+_extensions/

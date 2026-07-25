@@ -41,6 +41,17 @@ Views (`bcintel.db`): `issues`, `comments`, `events` — projected and deduped
 over the raw JSONL. `events` reconstructs the label/assignment/close history the
 plain issues endpoint drops.
 
+## Dashboard
+
+`report.qmd` is a living dashboard — the lifecycle figure
+(`figures/lifecycle.dot` via quarto-livefigures) plus summary tables computed
+live from the JSONL on every render:
+
+```bash
+quarto add seandavi/quarto-livefigures   # one-time: installs the figure extension
+uv run quarto render report.qmd          # -> report.html
+```
+
 ## Dev
 
 ```bash

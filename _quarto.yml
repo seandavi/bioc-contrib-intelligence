@@ -1,0 +1,8 @@
+project:
+  type: default
+  render:
+    - report.qmd
+
+filters:
+  - at: pre-ast
+    path: livefigures

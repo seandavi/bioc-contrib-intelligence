@@ -43,6 +43,18 @@ FROM timeline_raw
 QUALIFY row_number() OVER (PARTITION BY _issue, event, coalesce(id, 0), coalesce(created_at, '')
                           ORDER BY created_at DESC) = 1;
 
+-- Consecutive label changes per issue — the raw edges of the lifecycle state
+-- machine. Includes build-status labels (OK/ERROR/…); filter to the stage set
+-- ('1. awaiting moderation', 'pre-check passed', 'pre-review',
+--  '2. review in progress', '3a'..'3e') to get the review state machine.
+CREATE OR REPLACE VIEW label_transitions AS
+SELECT repo, issue_number,
+       lag(label) OVER (PARTITION BY repo, issue_number ORDER BY created_at) AS from_label,
+       label AS to_label,
+       created_at AS changed_at
+FROM events
+WHERE event = 'labeled';
+
 -- ── Derived views (parsed from issue bodies + bot comments) ──────────────────
 
 -- One row per submission: package name, source repo, and final outcome.
@@ -88,6 +100,5 @@ WHERE body LIKE '%AdditionalPackage%';
 def connect(base: str = "data") -> duckdb.DuckDBPyConnection:
     """A DuckDB connection with the issues/comments/events views registered."""
     con = duckdb.connect()
-    for stmt in filter(str.strip, VIEWS.format(base=base).split(";")):
-        con.execute(stmt)
+    con.execute(VIEWS.format(base=base))  # runs all CREATE VIEW statements
     return con

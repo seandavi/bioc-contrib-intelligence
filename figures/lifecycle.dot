@@ -1,0 +1,60 @@
+// Bioconductor submission lifecycle — state machine.
+// Derived from the `label_transitions` view over 4,344 legacy-tracker issues;
+// edge labels are observed transition counts. Rendered by quarto-livefigures
+// (reference this .dot from a figure in a .qmd), or `dot -Tsvg lifecycle.dot`.
+digraph lifecycle {
+  rankdir=TB;
+  bgcolor="white";
+  node [shape=box style="rounded,filled" fontname="Helvetica" fontsize=11 color="#343a40"];
+  edge [fontname="Helvetica" fontsize=9 color="#495057"];
+
+  start [label="submission\n(issue opened)" shape=ellipse fillcolor="#a5d8ff"];
+
+  subgraph cluster_mod {
+    label="PHASE 1 · MODERATION — core team (lshep, vjcitn, LiNk-NY)";
+    labeljust=l; fontname="Helvetica-Bold"; fontsize=11;
+    style=filled; color="#e5dbff";
+    awaiting  [label="1. awaiting moderation" fillcolor="#fff3bf"];
+    pending   [label="3e. pending\npre-review changes" fillcolor="#ffd8a8"];
+    interop   [label="3d. needs interop" fillcolor="#ffd8a8"];
+    precheck  [label="pre-check passed" fillcolor="#d0bfff"];
+    prereview [label="pre-review" fillcolor="#d0bfff"];
+  }
+
+  subgraph cluster_rev {
+    label="PHASE 2 · REVIEW — assigned reviewer + core team";
+    labeljust=l; fontname="Helvetica-Bold"; fontsize=11;
+    style=filled; color="#d3f9d8";
+    review   [label="2. review in progress" fillcolor="#a5d8ff"];
+    accepted [label="3a. accepted" fillcolor="#b2f2bb"];
+    inactive [label="3c. inactive" fillcolor="#ffd8a8"];
+    declined [label="3b. declined" fillcolor="#ffc9c9"];
+  }
+
+  closed [label="closed" shape=ellipse fillcolor="#ced4da"];
+
+  // happy path
+  start     -> awaiting  [label="1167"];
+  awaiting  -> precheck  [label="536"];
+  precheck  -> prereview [label="493"];
+  prereview -> review    [label="465"];
+  review    -> accepted  [label="837" color="#2f9e44" penwidth=2];
+
+  // moderation branches / holds
+  awaiting  -> pending   [label="308" color="#e8590c"];
+  awaiting  -> interop   [label="55"  color="#e8590c"];
+  pending   -> precheck  [label="251 (resubmit)" style=dashed color="#f08c00"];
+
+  // skip-edges (not a clean linear pipeline)
+  awaiting  -> review    [label="262 (skip)" style=dashed color="#868e96"];
+  precheck  -> review    [label="314 (skip)" style=dashed color="#868e96"];
+
+  // review outcomes
+  review    -> inactive  [label="118" color="#e8590c"];
+  review    -> declined  [label="declined" color="#e03131"];
+
+  // terminals close the issue
+  accepted  -> closed;
+  inactive  -> closed    [label="auto" style=dashed];
+  declined  -> closed;
+}

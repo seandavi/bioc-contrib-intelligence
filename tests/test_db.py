@@ -56,6 +56,10 @@ def test_views_derive_issues_comments_events(tmp_path):
     assignee = con.sql("SELECT assignee FROM events WHERE event='assigned'").fetchone()[0]
     assert assignee == "reviewer1"
 
+    # label_transitions: single label event -> from_label NULL, to_label set
+    tr = con.sql("SELECT from_label, to_label FROM label_transitions").fetchone()
+    assert tr == (None, "3a. accepted")
+
 
 def test_derived_views(tmp_path):
     repo = "Bioconductor/Contributions"
