@@ -9,7 +9,7 @@ import argparse
 import os
 from pathlib import Path
 
-from . import bot, db
+from . import bot, db, review
 from .fetch import CONCURRENCY, REPOS, fetch
 
 DATA = Path("data")
@@ -52,6 +52,15 @@ def main(argv: list[str] | None = None) -> None:
     pb.add_argument("--force", action="store_true",
                     help="re-brief every issue, bypassing the idempotency store")
 
+    pr = sub.add_parser("review",
+                        help="clone each open submission and write a static review comment")
+    pr.add_argument("--repo", action="append", metavar="O/R",
+                    help="repo (repeatable; default: both trackers)")
+    pr.add_argument("--out", default="bot_out", help="output directory (default: bot_out)")
+    pr.add_argument("--limit", type=int, help="max NEW reviews per repo (for testing / cost)")
+    pr.add_argument("--force", action="store_true",
+                    help="re-review even if the current sha was already reviewed")
+
     a = p.parse_args(argv)
     _load_dotenv()
     if a.cmd == "fetch":
@@ -61,6 +70,8 @@ def main(argv: list[str] | None = None) -> None:
     elif a.cmd == "bot":
         bot.run(a.repo or REPOS, DATA, a.out, use_llm=not a.no_llm, limit=a.limit,
                 force=a.force)
+    elif a.cmd == "review":
+        review.run(a.repo or REPOS, DATA, a.out, limit=a.limit, force=a.force)
 
 
 if __name__ == "__main__":

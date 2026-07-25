@@ -173,6 +173,36 @@ Markdown briefing per open issue to `bot_out/<repo>/issue-<n>.md` instead of
 posting. The deterministic + precedent facts are real; the LLM judgment layer
 drops into the `decide` step later.
 
+### The reactive review loop (`bcintel review`)
+
+`bcintel bot` reviews from *metadata*; `bcintel review` reviews the *source*. For
+each open issue in a review-relevant stage (`pre_review`, `review`) it:
+
+1. **Clones** the submitted GitHub repo (`source_url`, parsed from the issue) at
+   the default-branch tip — full history, so diffs resolve.
+2. **Inspects statically** — `review.static_checks` reads/greps DESCRIPTION,
+   NAMESPACE, `R/`, vignettes, and file sizes (the `[static]` items from the
+   `bioc-package-review` skill). No build tools run; SPB build status is read
+   from the issue's parsed `builds` trajectory.
+3. **First vs re-review** is decided by the state store (`last_review`). A first
+   review feeds the full source; a **re-review is diff-aware** — it feeds the
+   `git diff` since the last reviewed sha, the prior review text, and the
+   build-state trajectory, and uses a delta-focused comment format ("Changes
+   since last review / Resolved / Still outstanding / New concerns").
+4. **Drafts a comment** with per-finding **remediation** via the LLM, and writes
+   it to disk (dry-run). Every finding carries a concrete fix the submitter can act on.
+
+Idempotency keys on the cloned HEAD sha (stored with the review text), so the
+command is safe to run on a schedule: `bcintel fetch && bcintel review` from cron
+re-reviews only when a submission actually changed (a new sha). That is the
+reactive loop — no webhook, no standing service.
+
+**Remaining seams** (named, not built): (a) a *detailed* check-output diff needs
+fetching + parsing the SPB build-report HTML — today we diff build *state*
+(OK/WARN/ERROR trajectory), not the BiocCheck line items; (b) turning remediation
+into **filed PRs** (generate a patch, fork, open PR) is the next increment; (c)
+flipping dry-run to *posting* is gated behind a bot identity and human sign-off.
+
 ## Reference facts to pull when building
 
 - `docs/package-review-checklist.md` in `Bioconductor/Contributions` — the exact
