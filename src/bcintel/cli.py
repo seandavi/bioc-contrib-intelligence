@@ -62,6 +62,7 @@ def main(argv: list[str] | None = None) -> None:
                     help="re-review even if the current sha was already reviewed")
     pr.add_argument("--patch", action="store_true",
                     help="also draft a proposed-PR markdown with safe metadata fixes")
+    pr.add_argument("--issue", type=int, help="review only this issue number")
 
     pc = sub.add_parser("cycle",
                         help="one reactive tick: fetch the corpus, then review changed submissions")
@@ -81,7 +82,8 @@ def main(argv: list[str] | None = None) -> None:
         bot.run(a.repo or REPOS, DATA, a.out, use_llm=not a.no_llm, limit=a.limit,
                 force=a.force)
     elif a.cmd == "review":
-        review.run(a.repo or REPOS, DATA, a.out, limit=a.limit, force=a.force, patch=a.patch)
+        review.run(a.repo or REPOS, DATA, a.out, limit=a.limit, force=a.force,
+                   patch=a.patch, only_issue=a.issue)
     elif a.cmd == "cycle":
         repos = a.repo or REPOS
         fetch(repos, DATA, None, CONCURRENCY)

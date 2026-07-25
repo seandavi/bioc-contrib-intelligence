@@ -306,7 +306,8 @@ def build_comment(pkg, issue, source_url, head, findings, source, *, first,
 # ── orchestration ────────────────────────────────────────────────────────────
 
 
-def run(repos, data_dir, out_dir, *, stages=REACT_STAGES, limit=None, force=False, patch=False):
+def run(repos, data_dir, out_dir, *, stages=REACT_STAGES, limit=None, force=False,
+        patch=False, only_issue=None):
     con = db.connect(str(data_dir))
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -328,6 +329,8 @@ def run(repos, data_dir, out_dir, *, stages=REACT_STAGES, limit=None, force=Fals
             WHERE p.repo = ? AND i.state = 'open'
             ORDER BY p.issue_number
         """, [repo, repo]).fetchall()
+        if only_issue is not None:
+            rows = [r for r in rows if r[0] == only_issue]
 
         traj = {}
         for n, created, st in con.execute(
