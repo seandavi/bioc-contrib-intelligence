@@ -19,3 +19,4 @@ report_files/
 _livefigures/
 _extensions/
 bot_out/
+.env

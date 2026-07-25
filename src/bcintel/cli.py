@@ -6,12 +6,27 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 from . import bot, db
 from .fetch import CONCURRENCY, REPOS, fetch
 
 DATA = Path("data")
+
+
+def _load_dotenv(path=".env"):
+    p = Path(path)
+    if not p.exists():
+        return
+    for line in p.read_text().splitlines():
+        line = line.strip().removeprefix("export ").strip()
+        if not line or line.startswith("#"):
+            continue
+        k, _, v = line.partition("=")
+        k, v = k.strip(), v.strip().strip('"').strip("'")
+        if k and k not in os.environ:  # real env wins over .env
+            os.environ[k] = v
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -32,14 +47,17 @@ def main(argv: list[str] | None = None) -> None:
     pb.add_argument("--repo", action="append", metavar="O/R",
                     help="repo (repeatable; default: both trackers)")
     pb.add_argument("--out", default="bot_out", help="output directory (default: bot_out)")
+    pb.add_argument("--no-llm", action="store_true", help="skip the Gemini judgment layer")
+    pb.add_argument("--limit", type=int, help="max issues per repo (for testing / cost)")
 
     a = p.parse_args(argv)
+    _load_dotenv()
     if a.cmd == "fetch":
         fetch(a.repo or REPOS, DATA, a.limit, a.concurrency)
     elif a.cmd == "sql":
         print(db.connect().sql(a.query))
     elif a.cmd == "bot":
-        bot.run(a.repo or REPOS, DATA, a.out)
+        bot.run(a.repo or REPOS, DATA, a.out, use_llm=not a.no_llm, limit=a.limit)
 
 
 if __name__ == "__main__":
