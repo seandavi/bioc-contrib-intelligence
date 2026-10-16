@@ -159,25 +159,32 @@ def run(split: str = "dev", max_accepted: int = 40, model: str = "clef",
         raise SystemExit("Commit the frozen questions before scoring the test split.")
     rows = load(split, max_accepted)
     preds, tokens = asyncio.run(_score(rows, model, concurrency))
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + f"-{split}-{model}"
-    out = EXP / "runs" / run_id
-    out.mkdir(parents=True)
-    config = {"run_id": run_id, "split": split, "model": model, "max_accepted": max_accepted,
-              "git": _git_sha(), "questions": QUESTIONS, "note": note,
+    config = {"split": split, "model": model, "max_accepted": max_accepted,
+              "questions": QUESTIONS, "note": note,
               "input_tokens": tokens, "est_cost_usd": round(tokens * 0.24 / 1e6, 4)}
     m = metrics(preds)
-    (out / "config.json").write_text(json.dumps(config, indent=2))
-    (out / "metrics.json").write_text(json.dumps(m, indent=2))
-    (out / "predictions.jsonl").write_text("".join(json.dumps(p) + "\n" for p in preds))
     best = max((q for q in m["auc"] if m["auc"][q] is not None), key=lambda q: m["auc"][q])
-    line = (f"- {run_id} · git {config['git']} · n={m['n']} ({m['n_pos']}+/{m['n_neg']}-) · "
-            f"best AUC {best}={m['auc'][best]:.3f} · baseline="
-            f"{m['auc']['baseline_core_imports']:.3f} · ${config['est_cost_usd']}"
-            + (f" · {note}" if note else "") + "\n")
+    return record_run(f"{split}-{model}", config, m, preds,
+                      f"n={m['n']} ({m['n_pos']}+/{m['n_neg']}-) · best AUC {best}="
+                      f"{m['auc'][best]:.3f} · baseline={m['auc']['baseline_core_imports']:.3f}"
+                      f" · ${config['est_cost_usd']}")
+
+
+def record_run(tag: str, config: dict, metrics_: dict, preds: list[dict], summary: str) -> Path:
+    """Write runs/<run_id>/{config,metrics,predictions} and append a LEDGER line."""
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + f"-{tag}"
+    out = EXP / "runs" / run_id
+    out.mkdir(parents=True)
+    config = {"run_id": run_id, "git": _git_sha(), **config}
+    (out / "config.json").write_text(json.dumps(config, indent=2))
+    (out / "metrics.json").write_text(json.dumps(metrics_, indent=2))
+    (out / "predictions.jsonl").write_text("".join(json.dumps(p) + "\n" for p in preds))
     ledger = EXP / "LEDGER.md"
     if not ledger.exists():
         ledger.write_text("# Gate 1 eval ledger\n\nAppend-only. One line per run; details in "
                           "runs/<run_id>/.\n\n")
+    note = config.get("note")
     with ledger.open("a") as f:
-        f.write(line)
+        f.write(f"- {run_id} · git {config['git']} · {summary}" + (f" · {note}" if note else "")
+                + "\n")
     return out

@@ -81,6 +81,13 @@ def main(argv: list[str] | None = None) -> None:
     pg.add_argument("--model", choices=["clef", "clef-flash"], default="clef")
     pg.add_argument("--note", default="", help="free-text note for the ledger line")
 
+    pv = sub.add_parser("gate1-v3", help="Gate 1 v3: code-level features + Clef (see gate1code)")
+    pv.add_argument("step", choices=["fetch", "index", "features", "eval-features", "eval-clef"])
+    pv.add_argument("--max-clean", type=int, default=600, help="clean-accept sample size")
+    pv.add_argument("--split", choices=["dev", "test"], default="dev")
+    pv.add_argument("--max-n", type=int, help="cap examples scored by Clef")
+    pv.add_argument("--note", default="")
+
     pd = sub.add_parser("dashboard", help="build the static reviewer dashboard")
     pd.add_argument("--out", default="site", help="output directory (default: site)")
 
@@ -106,6 +113,20 @@ def main(argv: list[str] | None = None) -> None:
         out = gate1.run(a.split, a.max_accepted, a.model, note=a.note)
         print(out / "metrics.json")
         print((out / "metrics.json").read_text())
+    elif a.cmd == "gate1-v3":
+        from . import gate1code as g
+        if a.step == "fetch":
+            print(g.fetch(g.sample(a.max_clean)))
+        elif a.step == "index":
+            from collections import Counter
+            res = g.index()
+            print(Counter(v.split(":")[0] for v in res.values()))
+        elif a.step == "features":
+            print(len(g.features()), "packages with features")
+        elif a.step == "eval-features":
+            print((g.eval_features(a.note) / "metrics.json").read_text())
+        else:
+            print((g.eval_clef(a.split, max_n=a.max_n, note=a.note) / "metrics.json").read_text())
     elif a.cmd == "dashboard":
         print(dashboard.build(DATA, Path(a.out)) / "index.html")
 
