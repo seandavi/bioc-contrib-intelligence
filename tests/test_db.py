@@ -103,3 +103,47 @@ def test_derived_views(tmp_path):
     # additional_packages: the 1-issue -> N-package bundling
     extra = con.sql("SELECT source_url FROM additional_packages").fetchone()[0]
     assert extra == "https://github.com/alice/pkgB"
+
+
+def test_reviewer_queue_ball_in_court(tmp_path):
+    repo = "Bioconductor/BiocContributions"
+    def issue(n):
+        return {"_repo": repo, "number": n, "title": f"pkg{n}", "state": "open",
+                "state_reason": None, "closed_at": None, "user": {"login": "sub"},
+                "created_at": "2026-01-01T00:00:00Z", "updated_at": "2026-03-01T00:00:00Z",
+                "labels": [{"name": "review in progress"}, {"name": "Build OK"}],
+                "assignees": [{"login": "rev"}], "comments": 0, "body": ""}
+
+    def ev(n, i, who, t, **kw):
+        return {"_repo": repo, "_issue": n, "id": i, "created_at": t, "updated_at": t,
+                "author_association": "NONE", **kw,
+                "user": {"login": who}, "actor": {"login": who}}
+
+    def say(n, i, who, t, body="x"):
+        return ev(n, i, who, t, event="commented", body=body)
+
+    def assign(n, i, t):
+        return ev(n, i, "lshep", t, event="assigned", assignee={"login": "rev"},
+                  label={"name": "review in progress"})
+
+    _write(tmp_path / "bioccontributions" / "issues.jsonl", [issue(1), issue(2), issue(3)])
+    _write(tmp_path / "bioccontributions" / "timeline.jsonl", [
+        # 1: reviewer commented, then submitter pushed -> reviewer's move since push
+        assign(1, 10, "2026-01-02T00:00:00Z"),
+        say(1, 11, "rev", "2026-01-05T00:00:00Z"),
+        say(1, 12, "github-actions[bot]", "2026-01-09T00:00:00Z",
+            "✅ New build detected for pkg1, version 0.99.2."),
+        # 2: submitter pinged, reviewer replied after -> submitter's move
+        assign(2, 20, "2026-01-02T00:00:00Z"),
+        say(2, 21, "sub", "2026-01-04T00:00:00Z"),
+        say(2, 22, "rev", "2026-01-06T00:00:00Z"),
+        # 3: reviewer never commented; submitter pings -> reviewer's move since assignment
+        assign(3, 30, "2026-01-03T00:00:00Z"),
+        say(3, 31, "sub", "2026-01-10T00:00:00Z", "any news?"),
+    ])
+    rows = {r[0]: r[1:] for r in db.connect(str(tmp_path)).sql(
+        "SELECT issue_number, reviewer_turn, waiting_since::VARCHAR, pushes_since, "
+        "comments_since FROM reviewer_queue ORDER BY 1").fetchall()}
+    assert rows[1] == (True, "2026-01-09 00:00:00", 1, 0)
+    assert rows[2] == (False, "2026-01-06 00:00:00", 0, 0)
+    assert rows[3] == (True, "2026-01-03 00:00:00", 0, 1)

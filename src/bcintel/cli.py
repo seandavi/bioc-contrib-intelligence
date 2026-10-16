@@ -2,6 +2,7 @@
 
     bcintel fetch [--repo O/R ...] [--limit N] [--concurrency C]
     bcintel sql "SELECT ..."
+    bcintel dashboard [--out site]
 """
 from __future__ import annotations
 
@@ -9,7 +10,7 @@ import argparse
 import os
 from pathlib import Path
 
-from . import bot, db, review
+from . import bot, dashboard, db, review
 from .fetch import CONCURRENCY, REPOS, fetch
 
 DATA = Path("data")
@@ -71,6 +72,10 @@ def main(argv: list[str] | None = None) -> None:
     pc.add_argument("--out", default="bot_out", help="output directory (default: bot_out)")
     pc.add_argument("--limit", type=int, help="max NEW reviews per repo")
     pc.add_argument("--patch", action="store_true", help="also draft proposed PRs")
+    pc.add_argument("--site", default="site", help="dashboard output directory (default: site)")
+
+    pd = sub.add_parser("dashboard", help="build the static reviewer dashboard")
+    pd.add_argument("--out", default="site", help="output directory (default: site)")
 
     a = p.parse_args(argv)
     _load_dotenv()
@@ -88,6 +93,9 @@ def main(argv: list[str] | None = None) -> None:
         repos = a.repo or REPOS
         fetch(repos, DATA, None, CONCURRENCY)
         review.run(repos, DATA, a.out, limit=a.limit, patch=a.patch)
+        dashboard.build(DATA, Path(a.site))
+    elif a.cmd == "dashboard":
+        print(dashboard.build(DATA, Path(a.out)) / "index.html")
 
 
 if __name__ == "__main__":

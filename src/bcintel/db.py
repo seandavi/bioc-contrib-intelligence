@@ -28,7 +28,9 @@ QUALIFY row_number() OVER (PARTITION BY _repo, number ORDER BY updated_at DESC) 
 CREATE OR REPLACE VIEW comments AS
 SELECT _repo AS repo, _issue AS issue_number, id,
        user.login AS author, author_association, created_at, updated_at,
-       user.login IN ('bioc-issue-bot','github-actions[bot]') AS is_bot, body
+       user.login IN ('bioc-issue-bot','github-actions[bot]')
+         OR user.login LIKE '%[bot]' AS is_bot,
+       body
 FROM timeline_raw
 WHERE event = 'commented'
 QUALIFY row_number() OVER (PARTITION BY id ORDER BY updated_at DESC) = 1;
@@ -40,7 +42,8 @@ SELECT _repo AS repo, _issue AS issue_number, id, event,
        coalesce(actor.login, user.login) AS actor,
        label.name AS label, assignee.login AS assignee, created_at
 FROM timeline_raw
-QUALIFY row_number() OVER (PARTITION BY _issue, event, coalesce(id, 0), coalesce(created_at, '')
+QUALIFY row_number() OVER (PARTITION BY _repo, _issue, event,
+                                       coalesce(id, 0), coalesce(created_at, '')
                           ORDER BY created_at DESC) = 1;
 
 -- Consecutive label changes per issue — the raw edges of the lifecycle state
@@ -102,6 +105,74 @@ SELECT repo, issue_number,
        unnest(regexp_extract_all(body, 'AdditionalPackage:\s*(\S+)', 1)) AS source_url
 FROM comments
 WHERE body LIKE '%AdditionalPackage%';
+-- ── Reviewer dashboard ───────────────────────────────────────────────────────
+
+-- Human activity per issue, tagged by role. The new tracker's bot comment
+-- "(New|First) build detected for <pkg>, version X" (or "...invalid version
+-- bump") marks a submitter push, so it counts as submitter activity. Slash
+-- commands ("/accept-policies") are bot instructions, not conversation: dropped.
+CREATE OR REPLACE VIEW activity AS
+SELECT c.repo, c.issue_number, c.created_at AS occurred_at,
+       CASE WHEN c.is_bot THEN 'push' ELSE 'comment' END AS kind,
+       CASE WHEN c.is_bot THEN i.author ELSE c.author END AS who,
+       CASE WHEN c.is_bot OR c.author = i.author THEN 'submitter'
+            WHEN list_contains(i.assignees, c.author) THEN 'reviewer'
+            ELSE 'other' END AS role,
+       c.body
+FROM comments c JOIN issues i ON i.repo = c.repo AND i.number = c.issue_number
+WHERE (NOT c.is_bot AND NOT starts_with(ltrim(c.body), '/'))
+   OR (c.is_bot AND c.body LIKE '%uild detected for%');
+
+-- One row per (open issue, assigned reviewer): whose move it is and since when.
+-- Rule: the reviewer owes a move if they haven't commented since assignment, or
+-- the submitter commented/pushed after the reviewer's last comment. A submitter
+-- "thanks, working on it" also flips the ball (known false positive; the
+-- dashboard shows the last comment so a human can tell).
+CREATE OR REPLACE VIEW reviewer_queue AS
+WITH q AS (
+  SELECT repo, number AS issue_number, title, author AS submitter,
+         unnest(assignees) AS reviewer, labels, created_at
+  FROM issues WHERE state = 'open'
+), t AS (
+  SELECT q.*,
+    coalesce((SELECT max(e.created_at) FROM events e
+              WHERE e.repo = q.repo AND e.issue_number = q.issue_number
+                AND e.event = 'assigned' AND e.assignee = q.reviewer),
+             q.created_at) AS assigned_at,
+    (SELECT max(a.occurred_at) FROM activity a
+     WHERE a.repo = q.repo AND a.issue_number = q.issue_number
+       AND a.kind = 'comment' AND a.who = q.reviewer) AS reviewer_last,
+    list_filter(labels, l -> l LIKE 'Build %') AS build,
+    list_filter(labels, l -> l IN ('pre-review', 'review in progress', 'inactive review',
+                                   'administration required'))[1] AS stage
+  FROM q
+), s AS (
+  SELECT t.*,
+    (SELECT min(a.occurred_at) FROM activity a
+     WHERE a.repo = t.repo AND a.issue_number = t.issue_number AND a.role = 'submitter'
+       AND a.occurred_at > coalesce(t.reviewer_last, t.assigned_at)) AS submitter_first_since,
+    (SELECT count(*) FROM activity a
+     WHERE a.repo = t.repo AND a.issue_number = t.issue_number AND a.role = 'submitter'
+       AND a.kind = 'comment'
+       AND a.occurred_at > coalesce(t.reviewer_last, t.assigned_at)) AS comments_since,
+    (SELECT count(*) FROM activity a
+     WHERE a.repo = t.repo AND a.issue_number = t.issue_number
+       AND a.kind = 'push'
+       AND a.occurred_at > coalesce(t.reviewer_last, t.assigned_at)) AS pushes_since,
+    (SELECT max(e.created_at) FROM events e
+     WHERE e.repo = t.repo AND e.issue_number = t.issue_number
+       AND e.event = 'labeled' AND e.label = t.stage) AS stage_since,
+    (SELECT arg_max(a.who || ': ' || left(a.body, 300), a.occurred_at) FROM activity a
+     WHERE a.repo = t.repo AND a.issue_number = t.issue_number
+       AND a.kind = 'comment') AS last_comment
+  FROM t
+)
+SELECT *,
+  reviewer_last IS NULL OR submitter_first_since IS NOT NULL AS reviewer_turn,
+  CASE WHEN reviewer_last IS NULL THEN assigned_at
+       WHEN submitter_first_since IS NOT NULL THEN submitter_first_since
+       ELSE reviewer_last END AS waiting_since
+FROM s;
 """
 
 

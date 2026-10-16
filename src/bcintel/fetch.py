@@ -22,6 +22,7 @@ import json
 import os
 import subprocess
 import time
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -46,16 +47,39 @@ def token() -> str:
     return tok
 
 
-def done_issues(timeline_path: Path) -> set[int]:
-    """Issue numbers already captured (tolerating partial/corrupt trailing lines)."""
-    done: set[int] = set()
+def done_issues(timeline_path: Path) -> dict[int, str]:
+    """Issue number -> the issue `updated_at` its stored timeline was fetched at.
+
+    Rows written before `_fetched_at` existed map to "" so they count as stale.
+    Tolerates partial/corrupt trailing lines.
+    """
+    done: dict[int, str] = {}
     if timeline_path.exists():
         for line in timeline_path.read_text().splitlines():
             try:
-                done.add(json.loads(line)["_issue"])
+                row = json.loads(line)
+                n = row["_issue"]
+            except (json.JSONDecodeError, KeyError):
+                continue
+            done[n] = max(done.get(n, ""), row.get("_fetched_at", ""))
+    return done
+
+
+def since_cursor(issues_path: Path) -> str | None:
+    """`since=` cursor for an incremental issues poll: the newest stored
+    `updated_at` minus a small overlap (re-seeing a few issues is harmless).
+    None -> no file yet, do a full listing."""
+    newest = ""
+    if issues_path.exists():
+        for line in issues_path.read_text().splitlines():
+            try:
+                newest = max(newest, json.loads(line)["updated_at"])
             except (json.JSONDecodeError, KeyError):
                 pass
-    return done
+    if not newest:
+        return None
+    t = datetime.fromisoformat(newest.replace("Z", "+00:00")) - timedelta(minutes=5)
+    return t.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def next_link(link_header: str) -> str | None:
@@ -108,20 +132,19 @@ async def _paginate(client: httpx.AsyncClient, url: str, params: dict) -> list[d
     return items
 
 
-async def _fetch_issues(client: httpx.AsyncClient, repo: str) -> list[dict]:
-    items = await _paginate(
-        client, f"{API}/repos/{repo}/issues", {"state": "all", "per_page": 100}
-    )
+async def _fetch_issues(client: httpx.AsyncClient, repo: str, since: str | None) -> list[dict]:
+    params = {"state": "all", "per_page": 100} | ({"since": since} if since else {})
+    items = await _paginate(client, f"{API}/repos/{repo}/issues", params)
     return [i for i in items if "pull_request" not in i]  # drop PRs
 
 
-async def _produce(client, repo, num, queue, sem):
+async def _produce(client, repo, num, fetched_at, queue, sem):
     async with sem:
         items = await _paginate(
             client, f"{API}/repos/{repo}/issues/{num}/timeline", {"per_page": 100}
         )
     for it in items:
-        await queue.put({**it, "_repo": repo, "_issue": num})
+        await queue.put({**it, "_repo": repo, "_issue": num, "_fetched_at": fetched_at})
 
 
 async def _writer(queue: asyncio.Queue, path: Path) -> None:
@@ -144,22 +167,28 @@ async def _run(repos: list[str], data_dir: Path, limit: int | None, concurrency:
             d.mkdir(parents=True, exist_ok=True)
             print(f"== {repo} ==")
 
-            issues = await _fetch_issues(client, repo)
-            (d / "issues.jsonl").write_text(
-                "".join(json.dumps({**i, "_repo": repo}) + "\n" for i in issues)
-            )
-            print(f"  issues: {len(issues)}")
+            # Append-only: the issues view keeps the newest row per issue.
+            ip = d / "issues.jsonl"
+            since = since_cursor(ip)
+            issues = await _fetch_issues(client, repo, since)
+            with ip.open("a") as f:
+                f.write("".join(json.dumps({**i, "_repo": repo}) + "\n" for i in issues))
+            print(f"  issues: {len(issues)} updated since {since or 'the beginning'}")
 
             tl = d / "timeline.jsonl"
             done = done_issues(tl)
-            todo = [i["number"] for i in issues if i["number"] not in done]
+            # Refetch any issue updated since its timeline was stored. The whole
+            # timeline is re-appended; db views dedupe by id.
+            # ponytail: file grows per refetch; compact if it ever gets big.
+            todo = [(i["number"], i["updated_at"]) for i in issues
+                    if done.get(i["number"], "") < i["updated_at"]]
             if limit is not None:
                 todo = todo[:limit]
 
             queue: asyncio.Queue = asyncio.Queue(maxsize=2000)
             writer = asyncio.create_task(_writer(queue, tl))
             sem = asyncio.Semaphore(concurrency)
-            await asyncio.gather(*(_produce(client, repo, n, queue, sem) for n in todo))
+            await asyncio.gather(*(_produce(client, repo, n, u, queue, sem) for n, u in todo))
             await queue.put(None)  # sentinel: tells the writer to stop
             await writer
             print(f"  timeline: +{len(todo)} issues")
