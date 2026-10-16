@@ -26,6 +26,7 @@ import re
 import subprocess
 import tarfile
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 from pathlib import Path
 
 import duckdb
@@ -335,6 +336,7 @@ def eval_clef(split: str = "dev", model: str = "clef", concurrency: int = 8,
               max_n: int | None = None, note: str = "") -> Path:
     if split == "test" and "+dirty" in _git_sha():
         raise SystemExit("Commit the frozen questions before scoring the test split.")
+    started = datetime.now(timezone.utc)
     rows = [json.loads(x) for x in (DATA / "features.jsonl").read_text().splitlines()]
     rows = [r for r in rows if r["split"] == split][:max_n]
 
@@ -359,4 +361,4 @@ def eval_clef(split: str = "dev", model: str = "clef", concurrency: int = 8,
     best = max(m["auc"], key=lambda q: m["auc"][q] or 0)
     return record_run(f"clef-{split}-{model}", config, m, preds,
                       f"{split} n={m['n']} best {best}={m['auc'][best]:.3f} "
-                      f"${config['est_cost_usd']}")
+                      f"${config['est_cost_usd']}", started=started)

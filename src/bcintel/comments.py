@@ -16,6 +16,7 @@ import asyncio
 import hashlib
 import json
 import random
+from datetime import datetime, timezone
 from pathlib import Path
 
 from . import clef, db
@@ -187,6 +188,8 @@ def sample(rows: list[dict], per_role: dict[str, int], seed: int = 0) -> list[di
 
 def run(rows: list[dict], tag: str, note: str = "", concurrency: int = 8,
         model: str = "clef") -> Path:
+    started = datetime.now(timezone.utc)
+
     async def go():
         sem, tokens = asyncio.Semaphore(concurrency), 0
         async with clef.client() as c:
@@ -205,7 +208,7 @@ def run(rows: list[dict], tag: str, note: str = "", concurrency: int = 8,
               "submitter": SUBMITTER, "input_tokens": tokens,
               "est_cost_usd": round(tokens * 0.24 / 1e6, 4), "note": note}
     return record_run(tag, config, {"n": len(preds)}, preds,
-                      f"n={len(preds)} · ${config['est_cost_usd']}", exp=EXP)
+                      f"n={len(preds)} · ${config['est_cost_usd']}", exp=EXP, started=started)
 
 
 LABELS = Path("data/comments/labels.jsonl")
@@ -218,6 +221,7 @@ def run_full(repo: str = "Bioconductor/Contributions", concurrency: int = 16,
     are skipped. Records config + counts as a run under experiments/comments/."""
     qhash = hashlib.sha256(json.dumps([COMMON, REVIEWER, SUBMITTER], sort_keys=True)
                            .encode()).hexdigest()[:12]
+    started = datetime.now(timezone.utc)
     LABELS.parent.mkdir(parents=True, exist_ok=True)
     done = set()
     if LABELS.exists():
@@ -258,7 +262,7 @@ def run_full(repo: str = "Bioconductor/Contributions", concurrency: int = 16,
               "est_cost_usd": round(stats["tokens"] * 0.24 / 1e6, 2), "note": note}
     return record_run(f"full-{repo.split('/')[1]}", config, stats, [],
                       f"{repo} todo={stats['todo']} ok={stats['ok']} error={stats['error']} "
-                      f"${config['est_cost_usd']} qhash={qhash}", exp=EXP)
+                      f"${config['est_cost_usd']} qhash={qhash}", exp=EXP, started=started)
 
 
 def review_sheet(run_dir: Path, rows: list[dict], out: Path) -> Path:

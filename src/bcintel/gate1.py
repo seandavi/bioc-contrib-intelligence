@@ -157,6 +157,7 @@ def run(split: str = "dev", max_accepted: int = 40, model: str = "clef",
         concurrency: int = 8, note: str = "") -> Path:
     if split == "test" and "+dirty" in _git_sha():
         raise SystemExit("Commit the frozen questions before scoring the test split.")
+    started = datetime.now(timezone.utc)
     rows = load(split, max_accepted)
     preds, tokens = asyncio.run(_score(rows, model, concurrency))
     config = {"split": split, "model": model, "max_accepted": max_accepted,
@@ -167,13 +168,20 @@ def run(split: str = "dev", max_accepted: int = 40, model: str = "clef",
     return record_run(f"{split}-{model}", config, m, preds,
                       f"n={m['n']} ({m['n_pos']}+/{m['n_neg']}-) · best AUC {best}="
                       f"{m['auc'][best]:.3f} · baseline={m['auc']['baseline_core_imports']:.3f}"
-                      f" · ${config['est_cost_usd']}")
+                      f" · ${config['est_cost_usd']}", started=started)
 
 
 def record_run(tag: str, config: dict, metrics_: dict, preds: list[dict], summary: str,
-               exp: Path = EXP) -> Path:
-    """Write <exp>/runs/<run_id>/{config,metrics,predictions} and append a LEDGER line."""
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + f"-{tag}"
+               exp: Path = EXP, started: datetime | None = None) -> Path:
+    """Write <exp>/runs/<run_id>/{config,metrics,predictions} and append a LEDGER line.
+    Pass `started` (UTC) to record wall-clock time alongside tokens and cost."""
+    finished = datetime.now(timezone.utc)
+    run_id = finished.strftime("%Y%m%dT%H%M%SZ") + f"-{tag}"
+    if started is not None:
+        config = {"started_at": started.isoformat(timespec="seconds"),
+                  "finished_at": finished.isoformat(timespec="seconds"),
+                  "wall_seconds": round((finished - started).total_seconds(), 1), **config}
+        summary += f" · {config['wall_seconds']}s"
     out = exp / "runs" / run_id
     out.mkdir(parents=True)
     config = {"run_id": run_id, "git": _git_sha(), **config}
