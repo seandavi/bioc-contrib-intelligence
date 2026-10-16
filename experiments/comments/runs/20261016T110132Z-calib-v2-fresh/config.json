@@ -1,0 +1,108 @@
+{
+  "run_id": "20261016T110132Z-calib-v2-fresh",
+  "git": "108fe5f+dirty",
+  "model": "clef",
+  "n": 40,
+  "common": {
+    "asks_question": "Does the COMMENT TO EVALUATE ask the other party a question that needs an answer before the work can continue?",
+    "question_kind": {
+      "type": "choice",
+      "instructions": "What kind of question, if any, does the COMMENT TO EVALUATE ask?",
+      "criteria": {
+        "clarification": "asks what an earlier request means or how to satisfy it",
+        "technical": "asks how to do something in R/Bioconductor, or about an error",
+        "process": "asks about the submission or review process, policy, timing or next steps",
+        "scope": "asks whether the package or a feature is appropriate for Bioconductor",
+        "negotiation": "asks whether a request can be waived, deferred or done differently",
+        "none": "asks no question"
+      }
+    },
+    "hands_off": "After the COMMENT TO EVALUATE, is it now the other party's turn to act: to review, answer a question, make a decision or make changes? Answer no if the author is only acknowledging, says they are still working, or the conversation is finished.",
+    "blocked": "Does the author of the COMMENT TO EVALUATE say they cannot make progress without someone else's help (e.g. an error they cannot resolve, missing access, a broken build system)? Asking permission or asking an ordinary question is not being blocked.",
+    "pushback": "Does the author of the COMMENT TO EVALUATE disagree with or argue against a request or decision?",
+    "tone": {
+      "type": "score",
+      "instructions": "What is the tone of the COMMENT TO EVALUATE?",
+      "criteria": [
+        "curt or harsh",
+        "neutral",
+        "warm and encouraging"
+      ]
+    },
+    "about_build": "Does the COMMENT TO EVALUATE mainly discuss errors, warnings or results reported by automated checks or builds (R CMD check, BiocCheck, the build system), rather than the package's code, design or content?"
+  },
+  "reviewer": {
+    "review_kind": {
+      "type": "choice",
+      "instructions": "What kind of comment is the COMMENT TO EVALUATE, from the reviewer or Bioconductor team?",
+      "criteria": {
+        "full_review": "a substantive review of the package, requesting changes or approving it",
+        "partial_review": "some review points, explicitly promising more later",
+        "follow_up": "responds to the submitter's changes or replies on earlier points",
+        "nudge": "reminds or chases the submitter for a response",
+        "administrative": "a process note: assignment, labels, policy, triggering builds"
+      }
+    },
+    "n_requests": {
+      "type": "score",
+      "instructions": "How many distinct changes does the COMMENT TO EVALUATE ask the submitter to make?",
+      "criteria": [
+        "none",
+        "1-2",
+        "3-5",
+        "6-10",
+        "more than 10"
+      ]
+    },
+    "req_checks": "Does the COMMENT TO EVALUATE ask the submitter to fix errors, warnings or notes that it explicitly attributes to R CMD check, BiocCheck or the build report?",
+    "req_vignette": "Does the COMMENT TO EVALUATE ask for changes to the vignette?",
+    "req_tests": "Does the COMMENT TO EVALUATE ask for unit tests to be added or improved?",
+    "req_docs": "Does the COMMENT TO EVALUATE ask for changes to man pages, examples or the README?",
+    "req_interop": "Does the COMMENT TO EVALUATE ask the submitter to use or support Bioconductor classes such as SummarizedExperiment, GRanges or SingleCellExperiment?",
+    "req_code_style": "Does the COMMENT TO EVALUATE ask for changes to coding style or practices (e.g. vapply instead of sapply, seq_along, avoiding T/F)?",
+    "req_data": "Does the COMMENT TO EVALUATE raise data size, data provenance, or moving data to ExperimentHub/AnnotationHub?",
+    "req_metadata": "Does the COMMENT TO EVALUATE ask for changes to DESCRIPTION fields, version, biocViews, license or authors?",
+    "req_scope": "Does the COMMENT TO EVALUATE question whether the package or parts of it belong in Bioconductor?",
+    "request_clarity": {
+      "type": "score",
+      "instructions": "How concrete are the change requests in the COMMENT TO EVALUATE?",
+      "criteria": [
+        "vague",
+        "mixed",
+        "concrete and checkable"
+      ]
+    },
+    "effort_implied": {
+      "type": "score",
+      "instructions": "How much work do the requests in the COMMENT TO EVALUATE imply for the submitter?",
+      "criteria": [
+        "none or trivial",
+        "moderate changes",
+        "major rework"
+      ]
+    },
+    "new_requests": "Compared with THIS AUTHOR'S PREVIOUS COMMENT, does the COMMENT TO EVALUATE raise change requests that were not asked for before?",
+    "decision_signal": {
+      "type": "choice",
+      "instructions": "Does the COMMENT TO EVALUATE signal a decision on the package?",
+      "criteria": {
+        "none": "no decision signal",
+        "lean_accept": "close to acceptance",
+        "accept": "accepts the package",
+        "lean_decline": "doubts the package will be accepted",
+        "decline": "declines the package"
+      }
+    }
+  },
+  "submitter": {
+    "claims_all_addressed": "Does the COMMENT TO EVALUATE say that all requested changes have been made?",
+    "claims_partial": "Does the COMMENT TO EVALUATE say that only some requested changes have been made so far?",
+    "explains_not_doing": "Does the COMMENT TO EVALUATE explain why a requested change will not be made?",
+    "asks_for_help": "Does the COMMENT TO EVALUATE ask for help or guidance rather than just a review?",
+    "delay_notice": "Does the COMMENT TO EVALUATE apologise for a delay or say the author is busy and will respond later?",
+    "newcomer": "Does the author of the COMMENT TO EVALUATE say they are new to Bioconductor or R package development, or ask how basic Bioconductor processes work?"
+  },
+  "input_tokens": 104109,
+  "est_cost_usd": 0.025,
+  "note": "v2 questions on a fresh 40"
+}

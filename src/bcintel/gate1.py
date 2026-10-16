@@ -170,18 +170,19 @@ def run(split: str = "dev", max_accepted: int = 40, model: str = "clef",
                       f" · ${config['est_cost_usd']}")
 
 
-def record_run(tag: str, config: dict, metrics_: dict, preds: list[dict], summary: str) -> Path:
-    """Write runs/<run_id>/{config,metrics,predictions} and append a LEDGER line."""
+def record_run(tag: str, config: dict, metrics_: dict, preds: list[dict], summary: str,
+               exp: Path = EXP) -> Path:
+    """Write <exp>/runs/<run_id>/{config,metrics,predictions} and append a LEDGER line."""
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + f"-{tag}"
-    out = EXP / "runs" / run_id
+    out = exp / "runs" / run_id
     out.mkdir(parents=True)
     config = {"run_id": run_id, "git": _git_sha(), **config}
     (out / "config.json").write_text(json.dumps(config, indent=2))
     (out / "metrics.json").write_text(json.dumps(metrics_, indent=2))
     (out / "predictions.jsonl").write_text("".join(json.dumps(p) + "\n" for p in preds))
-    ledger = EXP / "LEDGER.md"
+    ledger = exp / "LEDGER.md"
     if not ledger.exists():
-        ledger.write_text("# Gate 1 eval ledger\n\nAppend-only. One line per run; details in "
+        ledger.write_text(f"# {exp.name} ledger\n\nAppend-only. One line per run; details in "
                           "runs/<run_id>/.\n\n")
     note = config.get("note")
     with ledger.open("a") as f:

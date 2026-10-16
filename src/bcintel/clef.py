@@ -1,9 +1,14 @@
-"""Minimal Cloudflare Clef client: yes/no ("noul") decisions with probabilities.
+"""Minimal Cloudflare Clef client: typed decisions with probabilities.
 
 Wire format per developers.cloudflare.com/workers-ai/models/clef (see also
 seandavi/bugsigdb-curation-tools `decision.py`, the full DecisionModel seam).
-ponytail: noul questions only, no images; port that seam when choice/score or a
-mock backend is needed.
+ponytail: no images, no mock backend; port that seam if either is needed.
+
+Questions are {id: spec}. A bare string spec is a yes/no ("noul") question;
+otherwise pass the wire shape, e.g. {"type": "choice", "instructions": ..., "criteria":
+{"a": "desc", ...}} or {"type": "score", "instructions": ..., "criteria": [low, ..., high]}.
+Answers: noul -> P(yes) as a float; choice -> {"choice", "probabilities"};
+score -> {"score" (0 = lowest level, probability-weighted), "probabilities"}.
 
 Auth: CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN (GSM: cdsci-r2-account-id,
 cdsci-cloudflare-workers-ai-token). Pricing: $0.24/M input tokens, no output charge.
@@ -29,18 +34,29 @@ def client() -> httpx.AsyncClient:
     return httpx.AsyncClient(headers={"Authorization": f"Bearer {tok}"}, timeout=90.0)
 
 
+def _wire(spec: str | dict) -> dict:
+    return {"type": "noul", "instructions": spec} if isinstance(spec, str) else spec
+
+
+def _answer(a: dict):
+    if a["type"] == "noul":
+        return float(a["noul"])
+    if a["type"] == "choice":
+        return {"choice": a["choice"], "probabilities": a["probabilities"]}
+    return {"score": float(a["score"]), "probabilities": a["probabilities"]}
+
+
 @retry(retry=retry_if_exception_type((Retryable, httpx.TransportError)),
        wait=wait_exponential(min=1, max=30), stop=stop_after_attempt(5), reraise=True)
-async def decide(c: httpx.AsyncClient, state: str, questions: dict[str, str],
-                 model: str = "clef") -> tuple[dict[str, float], dict]:
-    """Ask yes/no `questions` ({id: instructions}) about `state`.
-    Returns ({id: p_yes}, usage)."""
+async def decide(c: httpx.AsyncClient, state: str, questions: dict[str, str | dict],
+                 model: str = "clef") -> tuple[dict, dict]:
+    """Ask `questions` about `state`. Returns ({id: answer}, usage)."""
     url = API.format(account=os.environ["CLOUDFLARE_ACCOUNT_ID"], model=model)
     body = {"model": model, "state": state,
-            "questions": {q: {"type": "noul", "instructions": t} for q, t in questions.items()}}
+            "questions": {q: _wire(s) for q, s in questions.items()}}
     r = await c.post(url, json=body)
     if r.status_code in (429, 500, 502, 503, 504):
         raise Retryable(r.status_code)
     r.raise_for_status()
     res = r.json()["result"]
-    return {q: float(a["noul"]) for q, a in res["answers"].items()}, res.get("usage", {})
+    return {q: _answer(a) for q, a in res["answers"].items()}, res.get("usage", {})
