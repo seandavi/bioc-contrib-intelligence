@@ -74,6 +74,13 @@ def main(argv: list[str] | None = None) -> None:
     pc.add_argument("--patch", action="store_true", help="also draft proposed PRs")
     pc.add_argument("--site", default="site", help="dashboard output directory (default: site)")
 
+    pg = sub.add_parser("gate1-eval", help="score submissions' DESCRIPTIONs with Clef (Gate 1 fit)")
+    pg.add_argument("--split", choices=["dev", "test"], default="dev")
+    pg.add_argument("--max-accepted", type=int, default=40,
+                    help="cap on accepted (positive) examples (default: 40)")
+    pg.add_argument("--model", choices=["clef", "clef-flash"], default="clef")
+    pg.add_argument("--note", default="", help="free-text note for the ledger line")
+
     pd = sub.add_parser("dashboard", help="build the static reviewer dashboard")
     pd.add_argument("--out", default="site", help="output directory (default: site)")
 
@@ -94,6 +101,11 @@ def main(argv: list[str] | None = None) -> None:
         fetch(repos, DATA, None, CONCURRENCY)
         review.run(repos, DATA, a.out, limit=a.limit, patch=a.patch)
         dashboard.build(DATA, Path(a.site))
+    elif a.cmd == "gate1-eval":
+        from . import gate1
+        out = gate1.run(a.split, a.max_accepted, a.model, note=a.note)
+        print(out / "metrics.json")
+        print((out / "metrics.json").read_text())
     elif a.cmd == "dashboard":
         print(dashboard.build(DATA, Path(a.out)) / "index.html")
 

@@ -1,0 +1,64 @@
+{"issue": 39, "final": "3b. declined", "label": 0, "baseline": 1.0, "p": {"in_scope": 0.9739, "uses_bioc_classes": 0.9558, "needs_bioc_classes": 0.9297, "general_tool": 0.7782, "bioc_fit": 0.7879}}
+{"issue": 181, "final": "3b. declined", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.9319, "uses_bioc_classes": 0.0655, "needs_bioc_classes": 0.7697, "general_tool": 0.4336, "bioc_fit": 0.3866}}
+{"issue": 323, "final": "3b. declined", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.9098, "uses_bioc_classes": 0.0635, "needs_bioc_classes": 0.4718, "general_tool": 0.5897, "bioc_fit": 0.5362}}
+{"issue": 334, "final": "3b. declined", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.9477, "uses_bioc_classes": 0.0448, "needs_bioc_classes": 0.7316, "general_tool": 0.8002, "bioc_fit": 0.5356}}
+{"issue": 396, "final": "3b. declined", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.5837, "uses_bioc_classes": 0.0229, "needs_bioc_classes": 0.2989, "general_tool": 0.0466, "bioc_fit": 0.0714}}
+{"issue": 582, "final": "3b. declined", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.9474, "uses_bioc_classes": 0.0508, "needs_bioc_classes": 0.7928, "general_tool": 0.6511, "bioc_fit": 0.4293}}
+{"issue": 747, "final": "3b. declined", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.9294, "uses_bioc_classes": 0.0438, "needs_bioc_classes": 0.7567, "general_tool": 0.355, "bioc_fit": 0.4094}}
+{"issue": 794, "final": "3b. declined", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.9341, "uses_bioc_classes": 0.052, "needs_bioc_classes": 0.7284, "general_tool": 0.5867, "bioc_fit": 0.5278}}
+{"issue": 826, "final": "3b. declined", "label": 0, "baseline": 1.0, "p": {"in_scope": 0.9669, "uses_bioc_classes": 0.9827, "needs_bioc_classes": 0.966, "general_tool": 0.8306, "bioc_fit": 0.7431}}
+{"issue": 923, "final": "3b. declined", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.2421, "uses_bioc_classes": 0.0386, "needs_bioc_classes": 0.1747, "general_tool": 0.3937, "bioc_fit": 0.1724}}
+{"issue": 1238, "final": "3b. declined", "label": 0, "baseline": 1.0, "p": {"in_scope": 0.9288, "uses_bioc_classes": 0.9641, "needs_bioc_classes": 0.917, "general_tool": 0.8209, "bioc_fit": 0.6743}}
+{"issue": 1341, "final": "3b. declined", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.4372, "uses_bioc_classes": 0.0378, "needs_bioc_classes": 0.1879, "general_tool": 0.6168, "bioc_fit": 0.2874}}
+{"issue": 1500, "final": "3b. declined", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.9447, "uses_bioc_classes": 0.1715, "needs_bioc_classes": 0.6358, "general_tool": 0.4638, "bioc_fit": 0.432}}
+{"issue": 1563, "final": "3b. declined", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.9108, "uses_bioc_classes": 0.1234, "needs_bioc_classes": 0.6666, "general_tool": 0.3706, "bioc_fit": 0.3462}}
+{"issue": 1713, "final": "3b. declined", "label": 0, "baseline": 1.0, "p": {"in_scope": 0.1864, "uses_bioc_classes": 0.8839, "needs_bioc_classes": 0.166, "general_tool": 0.1225, "bioc_fit": 0.0279}}
+{"issue": 2508, "final": "3d. needs interop", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.9595, "uses_bioc_classes": 0.0819, "needs_bioc_classes": 0.7551, "general_tool": 0.7327, "bioc_fit": 0.5865}}
+{"issue": 2655, "final": "3d. needs interop", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.8668, "uses_bioc_classes": 0.0645, "needs_bioc_classes": 0.7848, "general_tool": 0.775, "bioc_fit": 0.6788}}
+{"issue": 3307, "final": "3d. needs interop", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.8774, "uses_bioc_classes": 0.0456, "needs_bioc_classes": 0.4759, "general_tool": 0.6486, "bioc_fit": 0.6218}}
+{"issue": 3579, "final": "3d. needs interop", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.9454, "uses_bioc_classes": 0.1107, "needs_bioc_classes": 0.766, "general_tool": 0.3048, "bioc_fit": 0.4796}}
+{"issue": 3700, "final": "3d. needs interop", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.6058, "uses_bioc_classes": 0.0545, "needs_bioc_classes": 0.3373, "general_tool": 0.5685, "bioc_fit": 0.2859}}
+{"issue": 3782, "final": "3d. needs interop", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.9332, "uses_bioc_classes": 0.1068, "needs_bioc_classes": 0.6158, "general_tool": 0.7312, "bioc_fit": 0.4363}}
+{"issue": 3805, "final": "3d. needs interop", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.9499, "uses_bioc_classes": 0.1795, "needs_bioc_classes": 0.805, "general_tool": 0.7019, "bioc_fit": 0.4214}}
+{"issue": 3870, "final": "3d. needs interop", "label": 0, "baseline": 0.0, "p": {"in_scope": 0.9204, "uses_bioc_classes": 0.0571, "needs_bioc_classes": 0.7783, "general_tool": 0.7985, "bioc_fit": 0.5931}}
+{"issue": 3906, "final": "3d. needs interop", "label": 0, "baseline": 1.0, "p": {"in_scope": 0.9565, "uses_bioc_classes": 0.3296, "needs_bioc_classes": 0.8791, "general_tool": 0.4956, "bioc_fit": 0.5275}}
+{"issue": 4038, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9628, "uses_bioc_classes": 0.9719, "needs_bioc_classes": 0.9041, "general_tool": 0.652, "bioc_fit": 0.7659}}
+{"issue": 3725, "final": "3a. accepted", "label": 1, "baseline": 0.0, "p": {"in_scope": 0.3105, "uses_bioc_classes": 0.0355, "needs_bioc_classes": 0.1606, "general_tool": 0.5945, "bioc_fit": 0.3861}}
+{"issue": 105, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9645, "uses_bioc_classes": 0.1374, "needs_bioc_classes": 0.7768, "general_tool": 0.7918, "bioc_fit": 0.7497}}
+{"issue": 87, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9768, "uses_bioc_classes": 0.975, "needs_bioc_classes": 0.9662, "general_tool": 0.7386, "bioc_fit": 0.8732}}
+{"issue": 3442, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9787, "uses_bioc_classes": 0.9811, "needs_bioc_classes": 0.9442, "general_tool": 0.8223, "bioc_fit": 0.8393}}
+{"issue": 2604, "final": "3a. accepted", "label": 1, "baseline": 0.0, "p": {"in_scope": 0.9177, "uses_bioc_classes": 0.055, "needs_bioc_classes": 0.4912, "general_tool": 0.4453, "bioc_fit": 0.4518}}
+{"issue": 2465, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9654, "uses_bioc_classes": 0.9724, "needs_bioc_classes": 0.9434, "general_tool": 0.6139, "bioc_fit": 0.6733}}
+{"issue": 713, "final": "3a. accepted", "label": 1, "baseline": 0.0, "p": {"in_scope": 0.82, "uses_bioc_classes": 0.0546, "needs_bioc_classes": 0.6502, "general_tool": 0.6214, "bioc_fit": 0.487}}
+{"issue": 382, "final": "3a. accepted", "label": 1, "baseline": 0.0, "p": {"in_scope": 0.867, "uses_bioc_classes": 0.1421, "needs_bioc_classes": 0.4743, "general_tool": 0.5477, "bioc_fit": 0.3531}}
+{"issue": 949, "final": "3a. accepted", "label": 1, "baseline": 0.0, "p": {"in_scope": 0.9322, "uses_bioc_classes": 0.231, "needs_bioc_classes": 0.7463, "general_tool": 0.6577, "bioc_fit": 0.5805}}
+{"issue": 1037, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9552, "uses_bioc_classes": 0.9694, "needs_bioc_classes": 0.9448, "general_tool": 0.6687, "bioc_fit": 0.3888}}
+{"issue": 1644, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.974, "uses_bioc_classes": 0.9705, "needs_bioc_classes": 0.8969, "general_tool": 0.7818, "bioc_fit": 0.8}}
+{"issue": 840, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9082, "uses_bioc_classes": 0.0763, "needs_bioc_classes": 0.7756, "general_tool": 0.0491, "bioc_fit": 0.192}}
+{"issue": 1189, "final": "3a. accepted", "label": 1, "baseline": 0.0, "p": {"in_scope": 0.9145, "uses_bioc_classes": 0.3897, "needs_bioc_classes": 0.5366, "general_tool": 0.5452, "bioc_fit": 0.5618}}
+{"issue": 600, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9682, "uses_bioc_classes": 0.9432, "needs_bioc_classes": 0.9353, "general_tool": 0.5798, "bioc_fit": 0.6229}}
+{"issue": 393, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9479, "uses_bioc_classes": 0.807, "needs_bioc_classes": 0.7087, "general_tool": 0.7946, "bioc_fit": 0.4782}}
+{"issue": 462, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9571, "uses_bioc_classes": 0.959, "needs_bioc_classes": 0.9105, "general_tool": 0.049, "bioc_fit": 0.5969}}
+{"issue": 2687, "final": "3a. accepted", "label": 1, "baseline": 0.0, "p": {"in_scope": 0.9625, "uses_bioc_classes": 0.0641, "needs_bioc_classes": 0.8489, "general_tool": 0.8249, "bioc_fit": 0.5463}}
+{"issue": 2035, "final": "3a. accepted", "label": 1, "baseline": 0.0, "p": {"in_scope": 0.9348, "uses_bioc_classes": 0.0682, "needs_bioc_classes": 0.695, "general_tool": 0.6146, "bioc_fit": 0.655}}
+{"issue": 3924, "final": "3a. accepted", "label": 1, "baseline": 0.0, "p": {"in_scope": 0.8596, "uses_bioc_classes": 0.1492, "needs_bioc_classes": 0.4449, "general_tool": 0.4831, "bioc_fit": 0.551}}
+{"issue": 3451, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9614, "uses_bioc_classes": 0.9733, "needs_bioc_classes": 0.926, "general_tool": 0.8186, "bioc_fit": 0.84}}
+{"issue": 3865, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9776, "uses_bioc_classes": 0.982, "needs_bioc_classes": 0.9462, "general_tool": 0.8797, "bioc_fit": 0.8217}}
+{"issue": 753, "final": "3a. accepted", "label": 1, "baseline": 0.0, "p": {"in_scope": 0.9293, "uses_bioc_classes": 0.2675, "needs_bioc_classes": 0.6203, "general_tool": 0.777, "bioc_fit": 0.6219}}
+{"issue": 856, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9697, "uses_bioc_classes": 0.9675, "needs_bioc_classes": 0.9472, "general_tool": 0.897, "bioc_fit": 0.85}}
+{"issue": 3381, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.972, "uses_bioc_classes": 0.9637, "needs_bioc_classes": 0.9355, "general_tool": 0.7799, "bioc_fit": 0.5693}}
+{"issue": 4212, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9769, "uses_bioc_classes": 0.9405, "needs_bioc_classes": 0.9213, "general_tool": 0.7747, "bioc_fit": 0.8445}}
+{"issue": 1857, "final": "3a. accepted", "label": 1, "baseline": 0.0, "p": {"in_scope": 0.8884, "uses_bioc_classes": 0.0365, "needs_bioc_classes": 0.2964, "general_tool": 0.855, "bioc_fit": 0.6708}}
+{"issue": 3536, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9172, "uses_bioc_classes": 0.2707, "needs_bioc_classes": 0.8142, "general_tool": 0.7762, "bioc_fit": 0.6773}}
+{"issue": 1287, "final": "3a. accepted", "label": 1, "baseline": 0.0, "p": {"in_scope": 0.8627, "uses_bioc_classes": 0.0509, "needs_bioc_classes": 0.4712, "general_tool": 0.5687, "bioc_fit": 0.4823}}
+{"issue": 1051, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.7991, "uses_bioc_classes": 0.8646, "needs_bioc_classes": 0.6447, "general_tool": 0.625, "bioc_fit": 0.4472}}
+{"issue": 2965, "final": "3a. accepted", "label": 1, "baseline": 0.0, "p": {"in_scope": 0.9384, "uses_bioc_classes": 0.1521, "needs_bioc_classes": 0.7468, "general_tool": 0.3886, "bioc_fit": 0.5777}}
+{"issue": 2496, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9787, "uses_bioc_classes": 0.975, "needs_bioc_classes": 0.9436, "general_tool": 0.8551, "bioc_fit": 0.873}}
+{"issue": 2946, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.972, "uses_bioc_classes": 0.9634, "needs_bioc_classes": 0.9318, "general_tool": 0.7246, "bioc_fit": 0.7621}}
+{"issue": 2206, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9763, "uses_bioc_classes": 0.9779, "needs_bioc_classes": 0.9591, "general_tool": 0.8715, "bioc_fit": 0.8785}}
+{"issue": 1934, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9675, "uses_bioc_classes": 0.9826, "needs_bioc_classes": 0.9678, "general_tool": 0.7646, "bioc_fit": 0.9128}}
+{"issue": 3796, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9333, "uses_bioc_classes": 0.6534, "needs_bioc_classes": 0.8591, "general_tool": 0.9208, "bioc_fit": 0.9289}}
+{"issue": 1985, "final": "3a. accepted", "label": 1, "baseline": 0.0, "p": {"in_scope": 0.954, "uses_bioc_classes": 0.1491, "needs_bioc_classes": 0.8149, "general_tool": 0.7129, "bioc_fit": 0.6091}}
+{"issue": 2567, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9764, "uses_bioc_classes": 0.9814, "needs_bioc_classes": 0.9492, "general_tool": 0.8741, "bioc_fit": 0.8949}}
+{"issue": 4196, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9776, "uses_bioc_classes": 0.9729, "needs_bioc_classes": 0.9177, "general_tool": 0.7943, "bioc_fit": 0.822}}
+{"issue": 3903, "final": "3a. accepted", "label": 1, "baseline": 1.0, "p": {"in_scope": 0.9736, "uses_bioc_classes": 0.9041, "needs_bioc_classes": 0.9071, "general_tool": 0.8003, "bioc_fit": 0.7103}}

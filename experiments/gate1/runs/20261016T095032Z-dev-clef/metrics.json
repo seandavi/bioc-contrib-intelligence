@@ -1,0 +1,20 @@
+{
+  "n": 62,
+  "n_pos": 40,
+  "n_neg": 22,
+  "auc": {
+    "in_scope": 0.634090909090909,
+    "uses_bioc_classes": 0.7920454545454545,
+    "needs_bioc_classes": 0.6727272727272727,
+    "general_tool": 0.6289772727272728,
+    "interop_gap": 0.7505681818181819,
+    "bioc_fit": 0.8079545454545455,
+    "baseline_core_imports": 0.7340909090909091
+  },
+  "auc_interop_only": {
+    "uses_bioc_classes": 0.8166666666666667,
+    "needs_bioc_classes": 0.6805555555555556,
+    "interop_gap": 0.8777777777777778,
+    "baseline_core_imports": 0.7694444444444445
+  }
+}

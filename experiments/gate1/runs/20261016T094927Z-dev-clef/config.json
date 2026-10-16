@@ -1,0 +1,17 @@
+{
+  "run_id": "20261016T094927Z-dev-clef",
+  "split": "dev",
+  "model": "clef",
+  "max_accepted": 40,
+  "git": "0193b76+dirty",
+  "questions": {
+    "in_scope": "Is this R package's purpose the analysis, annotation, visualization or access of biological or biomedical data (genomics, transcriptomics, proteomics, imaging, etc.)?",
+    "uses_bioc_classes": "Does the package build on standard Bioconductor data structures (e.g. SummarizedExperiment, SingleCellExperiment, GRanges, Biostrings, MultiAssayExperiment) according to its Imports/Depends?",
+    "needs_bioc_classes": "Does this package work with data that Bioconductor already has standard containers for (count or expression matrices with sample metadata, genomic ranges, sequences, single-cell data)?",
+    "general_tool": "Is this a reusable, general-purpose tool rather than code for a single paper, dataset or lab pipeline?",
+    "bioc_fit": "Would an experienced Bioconductor package reviewer consider this package a good fit for Bioconductor as submitted?"
+  },
+  "note": "v1 questions",
+  "input_tokens": 64579,
+  "est_cost_usd": 0.0155
+}
