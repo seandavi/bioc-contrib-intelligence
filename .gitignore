@@ -20,3 +20,6 @@ _livefigures/
 _extensions/
 bot_out/
 .env
+
+site/
+.playwright-mcp/

@@ -21,7 +21,20 @@ def test_done_issues_skips_corrupt_lines(tmp_path):
         + '{"no_issue_key": true}\n'        # missing _issue -> skipped
         + '{partial'                        # truncated tail -> skipped
     )
-    assert done_issues(p) == {1, 2}
+    assert done_issues(p) == {1: "", 2: ""}
+
+
+def test_done_issues_keeps_latest_fetch_stamp(tmp_path):
+    # Stamp = issue updated_at at fetch time; an issue updated later is stale.
+    p = tmp_path / "timeline.jsonl"
+    p.write_text("".join(json.dumps(r) + "\n" for r in [
+        {"_issue": 7},                                        # pre-stamp row
+        {"_issue": 7, "_fetched_at": "2026-09-03T04:44:05Z"},
+        {"_issue": 7, "_fetched_at": "2026-09-15T10:00:00Z"},
+    ]))
+    done = done_issues(p)
+    assert done == {7: "2026-09-15T10:00:00Z"}
+    assert done[7] < "2026-10-01T00:00:00Z"   # later update -> refetch
 
 
 def test_writer_is_single_and_line_framed(tmp_path):
