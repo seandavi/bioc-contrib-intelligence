@@ -29,10 +29,10 @@ ORDER BY created_at
 """
 THREAD = """
 WITH open AS (SELECT number FROM issues WHERE repo = $repo AND state = 'open')
-SELECT issue_number, created_at, 'comment' AS kind, author AS who, is_bot, body
+SELECT issue_number, id, created_at, 'comment' AS kind, author AS who, is_bot, body
 FROM comments WHERE repo = $repo AND issue_number IN (SELECT number FROM open)
 UNION ALL
-SELECT issue_number, created_at, event, actor, actor LIKE '%[bot]',
+SELECT issue_number, id, created_at, event, actor, actor LIKE '%[bot]',
        coalesce(label, assignee)
 FROM events WHERE repo = $repo AND issue_number IN (SELECT number FROM open)
   AND event IN ('labeled', 'unlabeled', 'assigned', 'unassigned', 'closed', 'reopened')

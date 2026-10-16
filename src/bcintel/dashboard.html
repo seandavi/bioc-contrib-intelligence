@@ -149,7 +149,10 @@ function thread(n, head, reviewers) {
     const role = (it) => it.is_bot ? "bot" : it.who === head.submitter ? "submitter"
       : reviewers.includes(it.who) ? "reviewer" : "other";
     $("#thread").innerHTML = items.map((it) => {
-      const when = new Date(it.created_at).toLocaleString();
+      const anchor = it.kind === "comment" ? `issuecomment-${it.id}` : `event-${it.id}`;
+      const when = it.id
+        ? `<a href="${gh(n)}#${anchor}" target="_blank" rel="noopener">${new Date(it.created_at).toLocaleString()} ↗</a>`
+        : new Date(it.created_at).toLocaleString();
       if (it.kind !== "comment")
         return `<li class="ev">${esc(it.who)} ${EV[it.kind]} <strong>${esc(it.body ?? "")}</strong> · ${when}</li>`;
       const r = role(it), meta = `<strong>${esc(it.who)}</strong> <span class="muted">${r} · ${when}</span>`;
@@ -168,7 +171,7 @@ function issue(n) {
   if (!head) return `<p>#${n} isn't an open submission. <a href="${gh(n)}">Open on GitHub</a></p>`;
   setTimeout(() => thread(n, head, rs.map((r) => r.reviewer)));
   return `<h2>#${n} ${esc(head.title)} <span class="muted">by ${esc(head.submitter)}</span>
-      · <a href="${gh(n)}">GitHub ↗</a></h2>
+      · <a href="${gh(n)}" target="_blank" rel="noopener">GitHub ↗</a></h2>
     ${rs.length ? queueTable(rs, true) : `<p class="muted">Unassigned.</p>`}
     <h2>Conversation</h2>
     <ol class="tl" id="thread"><li class="ev">loading…</li></ol>`;
