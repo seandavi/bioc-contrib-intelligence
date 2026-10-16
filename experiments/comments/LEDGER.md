@@ -8,3 +8,5 @@ Append-only. One line per run; details in runs/<run_id>/.
 - correction: 20261016T110129Z-calib-v2-same is NOT the v1 sample (unordered query made seeded sampling non-reproducible; fixed with ORDER BY c.id). Treat it as another fresh 40; the true same-sample rerun follows.
 - 20261016T110154Z-calib-v2-v1sample · git 108fe5f+dirty · n=40 · $0.0258 · v2 questions on the exact v1 comment ids
 - 20261016T110301Z-smoke-v3 · git 108fe5f+dirty · n=12 · $0.0073 · v3: delay_notice on both sides, +urgency
+- 20261016T110342Z-full-BiocContributions · git c3c63b4 · Bioconductor/BiocContributions todo=801 ok=801 error=0 $0.49 qhash=49da8a03e162 · v3 full pass
+- 20261016T112059Z-full-Contributions · git c3c63b4+dirty · Bioconductor/Contributions todo=31892 ok=31892 error=0 $20.66 qhash=49da8a03e162 · v3 full pass
