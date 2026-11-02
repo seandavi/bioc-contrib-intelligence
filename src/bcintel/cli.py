@@ -66,12 +66,9 @@ def main(argv: list[str] | None = None) -> None:
     pr.add_argument("--issue", type=int, help="review only this issue number")
 
     pc = sub.add_parser("cycle",
-                        help="one reactive tick: fetch the corpus, then review changed submissions")
+                        help="one tick: fetch the corpus, then rebuild the dashboard")
     pc.add_argument("--repo", action="append", metavar="O/R",
                     help="repo (repeatable; default: both trackers)")
-    pc.add_argument("--out", default="bot_out", help="output directory (default: bot_out)")
-    pc.add_argument("--limit", type=int, help="max NEW reviews per repo")
-    pc.add_argument("--patch", action="store_true", help="also draft proposed PRs")
     pc.add_argument("--site", default="site", help="dashboard output directory (default: site)")
 
     pg = sub.add_parser("gate1-eval", help="score submissions' DESCRIPTIONs with Clef (Gate 1 fit)")
@@ -106,7 +103,8 @@ def main(argv: list[str] | None = None) -> None:
     elif a.cmd == "cycle":
         repos = a.repo or REPOS
         fetch(repos, DATA, None, CONCURRENCY)
-        review.run(repos, DATA, a.out, limit=a.limit, patch=a.patch)
+        # Package review is off the timer (on hold, and its build parsing misses the
+        # new tracker); run `bcintel review` by hand. The dashboard ships a stub.
         dashboard.build(DATA, Path(a.site))
     elif a.cmd == "gate1-eval":
         from . import gate1
