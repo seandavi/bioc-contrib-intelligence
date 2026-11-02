@@ -1,9 +1,39 @@
-// Sessions and access. A session is the GitHub user, their token and whether
-// they're an admin, AES-GCM sealed into a cookie: no session store. The token
-// stays server-side (HttpOnly cookie, never sent to the UI) and is what write
-// actions use, so GitHub enforces permissions and actions show under their name.
+// Sessions and access. Sign-in is a GitHub App's user authorization: a session is
+// the GitHub user, their (8 h) user token plus its refresh token, and whether
+// they're an admin, AES-GCM sealed into a cookie: no session store. Tokens stay
+// server-side (HttpOnly cookie, never sent to the UI) and are what write actions
+// use, so GitHub enforces permissions and actions show under the user's name.
 
-export type User = { login: string; token: string; admin: boolean; exp: number };
+export type User = {
+  login: string; token: string; admin: boolean; exp: number;
+  refresh?: string; token_exp?: number; // GitHub App user tokens expire; absent for Bearer callers
+};
+export type Tokens = { access_token: string; expires_in?: number; refresh_token?: string };
+
+// Code exchange and refresh share GitHub's token endpoint.
+export async function exchange(params: Record<string, string>): Promise<Tokens | null> {
+  const r = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  const t = (await r.json().catch(() => ({}))) as Partial<Tokens>;
+  return r.ok && t.access_token ? (t as Tokens) : null;
+}
+
+export const withTokens = (u: User, t: Tokens): User => ({
+  ...u, token: t.access_token, refresh: t.refresh_token ?? u.refresh,
+  token_exp: t.expires_in ? Date.now() + t.expires_in * 1000 : undefined,
+});
+
+// Renew the user token a minute before it expires. null = sign in again.
+export async function fresh(u: User, clientId: string, secret: string): Promise<User | null> {
+  if (!u.token_exp || u.token_exp - 60e3 > Date.now()) return u;
+  if (!u.refresh) return null;
+  const t = await exchange({ client_id: clientId, client_secret: secret,
+    grant_type: "refresh_token", refresh_token: u.refresh });
+  return t ? withTokens(u, t) : null;
+}
 export type Data = {
   repo: string;
   generated_at: string;

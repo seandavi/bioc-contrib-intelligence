@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { allowed, canSeeIssue, type Data, scope, seal, unseal, type User } from "./auth";
+import { allowed, canSeeIssue, type Data, fresh, scope, seal, unseal, type User } from "./auth";
 
 const u = (login: string, admin = false): User => ({ login, token: "t", admin, exp: Date.now() + 1e6 });
 
@@ -28,4 +28,31 @@ test("non-admins see only their own assignments", () => {
   expect(Object.keys(s.issues)).toEqual(["1"]);
   expect(canSeeIssue(data, me, 2)).toBe(false);
   expect(canSeeIssue(data, u("x", true), 2)).toBe(true);
+});
+
+test("fresh: keeps live tokens, signs out expired ones without a refresh token", async () => {
+  const live = { ...u("rev"), token_exp: Date.now() + 3600e3 };
+  expect(await fresh(live, "id", "s")).toBe(live);
+  expect(await fresh({ ...u("rev"), token_exp: Date.now() - 1 }, "id", "s")).toBeNull();
+  const bearer = u("rev"); // no token_exp: not a GitHub App session token, nothing to renew
+  expect(await fresh(bearer, "id", "s")).toBe(bearer);
+});
+
+test("fresh: renews an expiring token with the refresh token", async () => {
+  const real = globalThis.fetch;
+  let sent: Record<string, string> = {};
+  globalThis.fetch = (async (_url: string, init: RequestInit) => {
+    sent = JSON.parse(init.body as string);
+    return new Response(JSON.stringify({ access_token: "new", expires_in: 28800, refresh_token: "r2" }));
+  }) as typeof fetch;
+  try {
+    const out = await fresh({ ...u("rev"), refresh: "r1", token_exp: Date.now() + 30e3 }, "id", "s");
+    expect(sent.grant_type).toBe("refresh_token");
+    expect(sent.refresh_token).toBe("r1");
+    expect(out?.token).toBe("new");
+    expect(out?.refresh).toBe("r2");
+    expect(out!.token_exp! > Date.now() + 28000e3).toBe(true);
+  } finally {
+    globalThis.fetch = real;
+  }
 });
