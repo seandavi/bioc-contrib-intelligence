@@ -1,90 +1,89 @@
 # bioc-contrib-intelligence
 
-Database + bot toolkit for the Bioconductor package-submission review process.
+Review-queue intelligence for Bioconductor package submissions: who owes the
+next move on each review, how long it has been waiting, and what changed since
+the last comment.
+
+**App:** <https://bioc-reviews.seandavi.workers.dev> (sign in with GitHub; for
+reviewers with open assignments on
+[Bioconductor/BiocContributions](https://github.com/Bioconductor/BiocContributions)
+and its triage team).
+
+## Why
+
+Submitters and reviewers often don't have the full picture of a review. A
+submission's status is spread across the issue thread, issue labels, the
+r-universe staging build and the review bot's state. Labels collect over time,
+and r-universe re-runs checks without posting to the issue. On 2026-11-02, 48 of
+the 120 open reviewer assignments had been the reviewer's move for more than four
+weeks.
+
+This project derives each submission's current state from those sources and
+shows it to reviewers and the core team in one place. Background and numbers:
+[`docs/specs/reviewer-app.md`](docs/specs/reviewer-app.md).
+
+## What's here
+
+| Part | What it does | Where |
+|---|---|---|
+| **Corpus** | Fetches every issue and its full timeline from both trackers into append-only JSONL. DuckDB views read it directly. | `src/bcintel/fetch.py`, `db.py` |
+| **Derived state** | Whose move it is and since when, parsed build reports and versions, outcomes, live r-universe check results. | `db.py`, `dashboard.py` |
+| **Snapshot** | `data.json` plus a file per issue, rebuilt every 5 min and synced to R2. | `dashboard.py`, `scripts/run-cycle.sh` |
+| **Reviewer app** | Cloudflare Worker (Hono API) with a React UI: My queue, Overview, Review detail, AI review editor. | [`app/`](app/README.md) |
+| **Research** | Lifecycle state machine, comment-signal labelling (Cloudflare Clef), cost log. | `STATE_MACHINE.md`, `experiments/` |
+
+```
+GitHub (both trackers) ─┐
+r-universe biocstaging ─┼─> bcintel cycle (every 5 min, onclappc02) ─> data/*.jsonl ─> DuckDB views
+                        │                                               └─> snapshot ─> R2 ─> Worker ─> app / API
+```
 
 ## Data
 
-Two trackers are ingested (both, because they overlap during a live migration):
+| Tracker | Role |
+|---|---|
+| `Bioconductor/BiocContributions` | current tracker (r-universe builds, GitHub Actions bot); refreshed every 5 min |
+| `Bioconductor/Contributions` | legacy tracker (2016–2025), about 4,300 issues; history and calibration; refreshed daily |
 
-| Repo | Role | Size |
-|---|---|---|
-| `Bioconductor/Contributions` | legacy tracker, historical corpus (2016–2025) | ~4,300 closed issues |
-| `Bioconductor/BiocContributions` | new tracker (R-universe / GitHub Actions) | ~113 issues, live |
+Everything comes from public GitHub and r-universe data. The corpus isn't in
+git (`data/` is ignored); it is rebuilt by `bcintel fetch` and backed up to R2.
 
-For each repo we store **all** issues (open + closed) plus the **per-issue
-timeline** (comments *and* label/assign/close/cross-reference events in one
-stream) as append-only JSONL under `data/<repo>/`. JSONL is the source of truth;
-DuckDB reads it directly — no import step.
+We fetch per-issue timelines rather than the repo-wide comments and events
+endpoints, because GitHub caps those at 30k items, which would truncate the
+legacy tracker.
 
-> We fetch per-issue timelines rather than the repo-wide `issues/comments` and
-> `issues/events` endpoints because GitHub hard-caps those at 30k items
-> (page 300 → HTTP 422), which silently truncates the legacy repo.
+## Run it
 
-## Install & run
-
-Uses [uv](https://docs.astral.sh/uv/). Auth via `GITHUB_TOKEN`/`GH_TOKEN` or a
-logged-in `gh`.
+Python with [uv](https://docs.astral.sh/uv/); GitHub auth from `GITHUB_TOKEN`,
+`GH_TOKEN` or a logged-in `gh`.
 
 ```bash
-uv sync                                   # create venv, install deps
-uv run bcintel fetch                       # backfill both repos -> data/*/*.jsonl
-uv run bcintel fetch --repo Bioconductor/BiocContributions --limit 5   # small test
-uv run bcintel sql "SELECT state, count(*) FROM issues GROUP BY 1"
+uv sync
+uv run bcintel fetch                                   # both trackers -> data/*/*.jsonl
+uv run bcintel sql "SELECT * FROM reviewer_queue LIMIT 5"
+uv run bcintel cycle                                   # fetch + r-universe + rebuild the snapshot
+uv run ruff check src tests && uv run pytest -q
 ```
 
-`fetch` is a single-writer async producer/consumer: httpx producers pull issue
-timelines concurrently (bounded by `--concurrency`, default 10), one consumer
-owns every write, and tenacity handles retries + rate limits. Resumable — re-run
-to continue or refresh.
+Main views: `issues`, `comments`, `events`, `activity`, `reviewer_queue` (whose
+move, waiting since, what changed), `build_reports` and `checks` (parsed bot
+build reports), `packages` (name, source, outcome).
 
-Views (`bcintel.db`): `issues`, `comments`, `events` — projected and deduped
-over the raw JSONL. `events` reconstructs the label/assignment/close history the
-plain issues endpoint drops.
+Scheduling: a systemd user timer (`scripts/systemd/`) runs
+`scripts/run-cycle.sh` every 5 minutes. The app has its own instructions in
+[`app/README.md`](app/README.md).
 
-## Dashboard
+## Status and tracking
 
-`report.qmd` is a living dashboard — the lifecycle figure
-(`figures/lifecycle.dot` via quarto-livefigures) plus summary tables computed
-live from the JSONL on every render:
+- Plan: [#13](https://github.com/seandavi/bioc-contrib-intelligence/issues/13).
+- Observations about the contributions process, and recommendations to discuss
+  with the Bioconductor core team:
+  [#20](https://github.com/seandavi/bioc-contrib-intelligence/issues/20).
+- The AI review panel shows a placeholder until a review engine is chosen
+  ([#12](https://github.com/seandavi/bioc-contrib-intelligence/issues/12)).
 
-```bash
-quarto add seandavi/quarto-livefigures   # one-time: installs the figure extension
-uv run quarto render report.qmd          # -> report.html
-```
-
-## Reviewing submissions
-
-```bash
-uv run bcintel bot                 # lightweight triage briefing per open issue (metadata)
-uv run bcintel review --patch      # clone each changed submission, static review + draft PR
-uv run bcintel cycle               # one tick: fetch, then rebuild the dashboard (no review)
-```
-
-`review` is off the timer: package review is on hold, and its build
-parsing doesn't yet read the new tracker's r-universe results. The dashboard
-writes a placeholder `i/<n>.review.md` ("REVIEW BODY HERE") per open issue for
-the app to build against.
-
-`review` is idempotent (keyed on the cloned HEAD sha), so it only acts
-on submissions that changed. Output is dry-run Markdown under `bot_out/<repo>/`:
-`issue-<n>.md` (review comment) and `issue-<n>.pr.md` (proposed safe-fix PR).
-Needs `GOOGLE_API_KEY` (or `ANTHROPIC_API_KEY`) for the judgment layer.
-
-**Scheduling:** a systemd user timer (`scripts/systemd/`) runs
-`scripts/run-cycle.sh` every 5 min (legacy tracker once a day). Each tick syncs
-`site/data.json` + `site/i/` to R2 (`data-bioc-reviews/snapshot/`, read by the
-reviewer app); once a day it also backs up `data/` raw JSONL to `raw/`.
-`.github/workflows/reactive-review.yml` is disabled.
-
-## Dev
-
-```bash
-uv run ruff check src tests
-uv run pytest -q
-```
-
-## Roadmap
-
-Build order (see `DESIGN.md`): **DB** (this) → deterministic check harness →
-retrieval over past reviews → multi-agent review → contribution-manager bot.
-Downstream: dashboards, an advisory reviewer bot, a triage/manager bot.
+Scope: this project covers the review queue (state, waits, hand-offs). It doesn't
+do automated package review; see Bioconductor's
+[BiocPkgReviewer](https://github.com/Bioconductor/BiocPkgReviewer). The earlier
+package-review experiments (`bcintel review`, `bot`, `gate1*`, `DESIGN.md`) are
+kept but on hold and not scheduled.
