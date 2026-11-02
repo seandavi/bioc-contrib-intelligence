@@ -14,6 +14,9 @@ from pathlib import Path
 from . import db
 
 REPO = "Bioconductor/BiocContributions"  # new tracker only; legacy is history
+# ponytail: placeholder AI review per open issue so the app can be built around
+# i/<n>.review.md; replace with the real review output once the parsers are fixed.
+REVIEW_STUB = "REVIEW BODY HERE\n"
 
 QUEUE = """
 SELECT issue_number, title, submitter, reviewer, reviewer_turn, waiting_since,
@@ -68,5 +71,6 @@ def build(data_dir: Path, out_dir: Path) -> Path:
     (out_dir / "i").mkdir(exist_ok=True)
     for n, thread in threads.items():
         (out_dir / "i" / f"{n}.json").write_text(json.dumps(thread, default=_enc))
+        (out_dir / "i" / f"{n}.review.md").write_text(REVIEW_STUB)
     shutil.copy(Path(__file__).with_name("dashboard.html"), out_dir / "index.html")
     return out_dir

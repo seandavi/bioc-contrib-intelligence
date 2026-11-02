@@ -1,5 +1,5 @@
 [Unit]
-Description=bcintel reactive review tick (fetch + review + draft PRs, dry-run)
+Description=bcintel tick (fetch + dashboard rebuild)
 # Alert on failure via the shared ntfy template (monode/infrastructure/SCHEDULING.md).
 OnFailure=ntfy-notify@%N.service
 

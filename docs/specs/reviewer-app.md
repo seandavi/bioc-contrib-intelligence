@@ -300,6 +300,10 @@ pseudonymised; numbers and labels are real.
 }
 ```
 
+AI review body: one markdown file per open issue at `i/<n>.review.md`. Until the
+review engine is chosen (§9.1), every file holds the placeholder `REVIEW BODY HERE`;
+design the review panel and editor around arbitrary markdown.
+
 Latest check result, as the bot posts it (to be parsed into a structured field):
 
 ```
