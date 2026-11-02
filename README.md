@@ -1,5 +1,9 @@
 # bioc-contrib-intelligence
 
+[![test](https://github.com/seandavi/bioc-contrib-intelligence/actions/workflows/test.yml/badge.svg)](https://github.com/seandavi/bioc-contrib-intelligence/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Code of Conduct](https://img.shields.io/badge/Code%20of%20Conduct-Bioconductor-brightgreen)](CODE_OF_CONDUCT.md)
+
 Review-queue intelligence for Bioconductor package submissions: who owes the
 next move on each review, how long it has been waiting, and what changed since
 the last comment.
@@ -87,3 +91,9 @@ do automated package review; see Bioconductor's
 [BiocPkgReviewer](https://github.com/Bioconductor/BiocPkgReviewer). The earlier
 package-review experiments (`bcintel review`, `bot`, `gate1*`, `DESIGN.md`) are
 kept but on hold and not scheduled.
+
+## Contributing, license, citation
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
+Report security issues privately ([SECURITY.md](SECURITY.md)). MIT licensed
+([LICENSE](LICENSE)); cite with [CITATION.cff](CITATION.cff).
