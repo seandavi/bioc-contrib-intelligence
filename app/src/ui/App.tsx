@@ -4,10 +4,15 @@ import { ago, api, type Data, type Me, short } from "./lib";
 import { Overview } from "./Overview";
 import { Queue } from "./Queue";
 
+// The #/route as a path, so GA4 reports /i/170 rather than one page for everything.
+const pageView = () => (window as unknown as { gtag?: (...a: unknown[]) => void }).gtag?.("event", "page_view",
+  { page_location: location.origin + (location.hash.slice(1) || "/"), page_title: document.title });
+
 const useHash = () => {
   const [h, setH] = useState(location.hash.slice(1) || "/");
   useEffect(() => {
-    const f = () => { setH(location.hash.slice(1) || "/"); scrollTo(0, 0); };
+    pageView();
+    const f = () => { setH(location.hash.slice(1) || "/"); scrollTo(0, 0); pageView(); };
     addEventListener("hashchange", f);
     return () => removeEventListener("hashchange", f);
   }, []);
