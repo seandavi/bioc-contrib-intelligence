@@ -7,7 +7,8 @@
     "build": "vite build",
     "deploy": "vite build && wrangler deploy",
     "check": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "secrets": "for s in GITHUB_CLIENT_ID:bioc-reviews-github-client-id GITHUB_CLIENT_SECRET:bioc-reviews-github-client-secret SESSION_SECRET:bioc-reviews-session-secret; do gcloud secrets versions access latest --project cdsci-infra --secret ${s#*:} | wrangler secret put ${s%%:*}; done"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

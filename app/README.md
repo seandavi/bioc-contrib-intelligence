@@ -24,8 +24,21 @@ SESSION_SECRET=dev-only
 
 ## Auth
 
-GitHub OAuth app, callback `https://<host>/auth/callback`. Secrets:
-`wrangler secret put GITHUB_CLIENT_ID | GITHUB_CLIENT_SECRET | SESSION_SECRET`.
+Sign-in is a **GitHub App** (user authorization), not an OAuth app: permissions
+are Issues read/write + Metadata read, user tokens expire after 8 h and are
+renewed with the refresh token kept in the sealed session cookie. Writes only
+work where the app is installed (Bioconductor/BiocContributions); read-only
+sign-in works without the installation.
+
+App settings: callback `https://bioc-reviews.seandavi.workers.dev/auth/callback`,
+"Expire user authorization tokens" on, webhook off (#11 adds it).
+
+Secrets live in GCP Secret Manager (`cdsci-infra`) and are copied to the Worker:
+
+```bash
+bun run secrets   # bioc-reviews-github-client-id / -client-secret / -session-secret
+```
+
 Admin = triage permission on the tracker, as GitHub reports it for the user's
 token. API callers can send `Authorization: Bearer <GitHub token>` instead of the
 session cookie.

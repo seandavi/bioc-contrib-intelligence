@@ -1,6 +1,7 @@
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import { allowed, canSeeIssue, type Data, resolveUser, scope, seal, unseal, type User } from "./auth";
+import { allowed, canSeeIssue, type Data, exchange, fresh, resolveUser, scope, seal, unseal, type User,
+  withTokens } from "./auth";
 
 type Env = {
   ASSETS: Fetcher;
@@ -37,7 +38,7 @@ app.get("/auth/login", (c) => {
   u.searchParams.set("client_id", c.env.GITHUB_CLIENT_ID);
   u.searchParams.set("redirect_uri", new URL("/auth/callback", c.req.url).toString());
   u.searchParams.set("state", state);
-  // ponytail: no scope while v1 is read-only; writes (#8) add public_repo.
+  // GitHub App: permissions come from the app's settings (Issues r/w, Metadata r), not scopes.
   return c.redirect(u.toString());
 });
 
@@ -45,18 +46,18 @@ app.get("/auth/callback", async (c) => {
   const { code, state } = c.req.query();
   if (!code || !state || state !== getCookie(c, "oauth_state")) return c.text("Sign-in failed: bad state", 400);
   deleteCookie(c, "oauth_state", { path: "/" });
-  const r = await fetch("https://github.com/login/oauth/access_token", {
-    method: "POST",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({ client_id: c.env.GITHUB_CLIENT_ID, client_secret: c.env.GITHUB_CLIENT_SECRET, code }),
-  });
-  const { access_token } = (await r.json()) as { access_token?: string };
-  const user = access_token && (await resolveUser(access_token, c.env.REPO));
+  const t = await exchange({ client_id: c.env.GITHUB_CLIENT_ID, client_secret: c.env.GITHUB_CLIENT_SECRET, code });
+  const u = t && (await resolveUser(t.access_token, c.env.REPO));
+  const user = u && withTokens(u, t);
   if (!user) return c.text("Sign-in failed: GitHub didn't return a user", 502);
-  setCookie(c, COOKIE, await seal(user, c.env.SESSION_SECRET),
-    { httpOnly: true, secure: true, sameSite: "Lax", path: "/", maxAge: 7 * 86400 });
+  await setSession(c, user);
   return c.redirect("/");
 });
+
+async function setSession(c: Context<Ctx>, user: User) {
+  setCookie(c, COOKIE, await seal(user, c.env.SESSION_SECRET),
+    { httpOnly: true, secure: true, sameSite: "Lax", path: "/", maxAge: 7 * 86400 });
+}
 
 app.post("/auth/logout", (c) => {
   deleteCookie(c, COOKIE, { path: "/" });
@@ -73,7 +74,7 @@ async function bearerUser(token: string, env: Env): Promise<User | null> {
   if (hit) return { ...((await hit.json()) as Omit<User, "token">), token };
   const u = await resolveUser(token, env.REPO);
   if (u) {
-    const { token: _, ...rest } = u;
+    const { token: _, refresh: __, ...rest } = u;
     await cache().put(k, new Response(JSON.stringify(rest), { headers: { "Cache-Control": "max-age=600" } }));
   }
   return u;
@@ -88,7 +89,9 @@ app.use("/api/*", async (c, next) => {
     user = { login: env.DEV_LOGIN, token: env.DEV_TOKEN ?? "", admin: env.DEV_ADMIN === "1", exp: Infinity };
   else {
     const s = getCookie(c, COOKIE);
-    user = s ? await unseal(s, env.SESSION_SECRET) : null;
+    const old = s ? await unseal(s, env.SESSION_SECRET) : null;
+    user = old && (await fresh(old, env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET));
+    if (user && user !== old) await setSession(c, user); // token was renewed
   }
   if (!user) return c.json({ error: "sign_in_required" }, 401);
   c.set("user", user);
