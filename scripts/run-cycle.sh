@@ -12,6 +12,14 @@ echo "===== cycle $(date -u +%Y-%m-%dT%H:%M:%SZ) ====="
 # Live tracker every tick; the legacy tracker (history) only in the first tick after 00:00 UTC.
 # ponytail: a missed midnight tick skips legacy for a day; harmless for a frozen tracker.
 REPOS=(--repo Bioconductor/BiocContributions)
-[ "$(date -u +%H%M)" \< "0005" ] && REPOS=()
+DAILY=""
+[ "$(date -u +%H%M)" \< "0005" ] && REPOS=() && DAILY=1
 uv run bcintel cycle "${REPOS[@]}"
+# Publish the snapshot the reviewer app reads (R2 bucket data-bioc-reviews, made in
+# seandavi/monode); --checksum uploads only changed files. Daily: back up the raw
+# corpus too. Uses the `r2` rclone remote.
+rclone sync site r2:data-bioc-reviews/snapshot --checksum --fast-list \
+  --include "data.json" --include "i/**"
+[ -n "$DAILY" ] && rclone copy data r2:data-bioc-reviews/raw --checksum --fast-list \
+  --include "bioccontributions/**" --include "contributions/**" --include "comments/**"
 echo "----- done $(date -u +%Y-%m-%dT%H:%M:%SZ) -----"

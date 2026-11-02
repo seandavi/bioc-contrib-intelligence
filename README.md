@@ -71,8 +71,10 @@ on submissions that changed. Output is dry-run Markdown under `bot_out/<repo>/`:
 Needs `GOOGLE_API_KEY` (or `ANTHROPIC_API_KEY`) for the judgment layer.
 
 **Scheduling:** a systemd user timer (`scripts/systemd/`) runs
-`scripts/run-cycle.sh` every 5 min (legacy tracker once a day). `.github/workflows/reactive-review.yml` is
-disabled.
+`scripts/run-cycle.sh` every 5 min (legacy tracker once a day). Each tick syncs
+`site/data.json` + `site/i/` to R2 (`data-bioc-reviews/snapshot/`, read by the
+reviewer app); once a day it also backs up `data/` raw JSONL to `raw/`.
+`.github/workflows/reactive-review.yml` is disabled.
 
 ## Dev
 
