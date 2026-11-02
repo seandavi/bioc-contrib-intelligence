@@ -57,17 +57,22 @@ uv run quarto render report.qmd          # -> report.html
 ```bash
 uv run bcintel bot                 # lightweight triage briefing per open issue (metadata)
 uv run bcintel review --patch      # clone each changed submission, static review + draft PR
-uv run bcintel cycle --patch       # one reactive tick: fetch, then review changed submissions
+uv run bcintel cycle               # one tick: fetch, then rebuild the dashboard (no review)
 ```
 
-`review`/`cycle` are idempotent (keyed on the cloned HEAD sha), so they only act
+`review` is off the 6-hourly timer: package review is on hold, and its build
+parsing doesn't yet read the new tracker's r-universe results. The dashboard
+writes a placeholder `i/<n>.review.md` ("REVIEW BODY HERE") per open issue for
+the app to build against.
+
+`review` is idempotent (keyed on the cloned HEAD sha), so it only acts
 on submissions that changed. Output is dry-run Markdown under `bot_out/<repo>/`:
 `issue-<n>.md` (review comment) and `issue-<n>.pr.md` (proposed safe-fix PR).
 Needs `GOOGLE_API_KEY` (or `ANTHROPIC_API_KEY`) for the judgment layer.
 
-**Scheduling:** `.github/workflows/reactive-review.yml` runs `bcintel cycle` every
-6h and uploads the reviews as artifacts; or run `uv run bcintel cycle --patch`
-from cron locally.
+**Scheduling:** a systemd user timer (`scripts/systemd/`) runs
+`scripts/run-cycle.sh` every 6h. `.github/workflows/reactive-review.yml` is
+disabled.
 
 ## Dev
 

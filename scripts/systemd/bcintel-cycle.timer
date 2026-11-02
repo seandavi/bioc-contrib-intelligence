@@ -1,5 +1,5 @@
 [Unit]
-Description=Run bcintel reactive review every 6 hours
+Description=Run bcintel tick every 6 hours
 
 [Timer]
 OnCalendar=*-*-* 00/6:17:00
