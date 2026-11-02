@@ -77,6 +77,11 @@ SELECT repo, number AS issue_number, author AS submitter, source_url,
             WHEN list_contains(labels, '3c. inactive')                 THEN 'inactive'
             WHEN list_contains(labels, '3d. needs interop')            THEN 'needs_interop'
             WHEN list_contains(labels, '3e. pending pre-review changes') THEN 'pending'
+            -- new tracker (BiocContributions)
+            WHEN list_contains(labels, 'package accepted')             THEN 'accepted'
+            WHEN list_contains(labels, 'package declined')             THEN 'declined'
+            WHEN list_contains(labels, 'duplicate')                    THEN 'duplicate'
+            WHEN state = 'closed' AND list_contains(labels, 'inactive review') THEN 'inactive'
             WHEN state = 'open'                                        THEN 'in_progress'
             ELSE 'unknown' END AS outcome,
        created_at, closed_at
@@ -90,6 +95,52 @@ SELECT repo, issue_number, created_at,
        regexp_extract(body, '(https?://\S+buildreport\S+?\.html)', 1) AS report_url
 FROM comments
 WHERE body LIKE '%build results were%';
+
+-- New tracker: one row per r-universe "build detected" bot comment. kind is
+-- first | new | invalid_version (a rejected bump: version is the attempted one,
+-- no checks). Run/staging/r-universe links are absent on invalid bumps.
+CREATE OR REPLACE VIEW build_reports_base AS
+SELECT repo, issue_number, id AS comment_id, created_at AS posted_at, body,
+       CASE WHEN body LIKE '%invalid version bump%' THEN 'invalid_version'
+            WHEN body LIKE '%First build detected%' THEN 'first'
+            ELSE 'new' END AS kind,
+       regexp_extract(body, 'uild detected for (\S+?)[ ,]', 1) AS package,
+       coalesce(nullif(regexp_extract(body, ', version ([0-9][0-9.]*[0-9])', 1), ''),
+                regexp_extract(body, '-> ([0-9][0-9.]*[0-9])\)', 1)) AS version,
+       nullif(regexp_extract(body, 'Detailed run: (\S+)', 1), '') AS run_url,
+       nullif(regexp_extract(body, 'staging repository: (\S+)', 1), '') AS staging_url,
+       nullif(regexp_extract(body, 'package page: (\S+)', 1), '') AS runiverse_url
+FROM comments
+WHERE is_bot AND body LIKE '%uild detected for%';
+
+-- One row per (build report, platform) from the report's check table:
+-- | source | 4.6.1 | ✅ OK | [run](url) |. Platforms vary by run; don't hardcode.
+CREATE OR REPLACE VIEW checks AS
+WITH l AS (
+  SELECT repo, issue_number, comment_id, posted_at, version,
+         unnest(regexp_extract_all(
+           body, '\| [a-z0-9_-]+ \| [^|\n]+ \| [^|\n]+ \| \[run\]\([^)]+\) \|')) AS line
+  FROM build_reports_base
+)
+SELECT repo, issue_number, comment_id, posted_at, version,
+       regexp_extract(line, '^\| ([a-z0-9_-]+) ', 1) AS platform,
+       trim(regexp_extract(line, '^\| [a-z0-9_-]+ \| ([^|]+)\|', 1)) AS r_version,
+       regexp_extract(line, '([A-Z]+) \| \[run\]', 1) AS status,
+       regexp_extract(line, '\[run\]\(([^)]+)\)', 1) AS url
+FROM l;
+
+-- Build reports with their worst check status (ERROR > WARNING > NOTE > UNKNOWN >
+-- OK). BUILD_FAILED = R-universe build failed or the package isn't in R-universe.
+-- NULL = invalid bump, or an early test-package format with no table.
+CREATE OR REPLACE VIEW build_reports AS
+SELECT b.* EXCLUDE (body),
+       CASE WHEN b.kind = 'invalid_version' THEN NULL
+            WHEN b.body LIKE '%not available in R-universe%'
+              OR b.body LIKE '%R-universe build failed%' THEN 'BUILD_FAILED'
+            ELSE (SELECT arg_max(c.status, CASE c.status WHEN 'ERROR' THEN 4 WHEN 'WARNING' THEN 3
+                                            WHEN 'NOTE' THEN 2 WHEN 'UNKNOWN' THEN 1 ELSE 0 END)
+                  FROM checks c WHERE c.comment_id = b.comment_id) END AS worst
+FROM build_reports_base b;
 
 -- The build commit sha per issue, parsed from the bot's "starting a build"
 -- comment. A new sha here = a new build = the bot should re-review (see state.py).
@@ -108,7 +159,7 @@ WHERE body LIKE '%AdditionalPackage%';
 -- ── Reviewer dashboard ───────────────────────────────────────────────────────
 
 -- Human activity per issue, tagged by role. The new tracker's bot comment
--- "(New|First) build detected for <pkg>, version X" (or "...invalid version
+-- "New build detected for <pkg>, version X" (or "...invalid version
 -- bump") marks a submitter push, so it counts as submitter activity. Slash
 -- commands ("/accept-policies") are bot instructions, not conversation: dropped.
 CREATE OR REPLACE VIEW activity AS
@@ -121,7 +172,8 @@ SELECT c.repo, c.issue_number, c.created_at AS occurred_at,
        c.body
 FROM comments c JOIN issues i ON i.repo = c.repo AND i.number = c.issue_number
 WHERE (NOT c.is_bot AND NOT starts_with(ltrim(c.body), '/'))
-   OR (c.is_bot AND c.body LIKE '%uild detected for%');
+   OR (c.is_bot AND c.body LIKE '%uild detected for%'
+       AND c.body NOT LIKE '%First build detected%');  -- the first build isn't a resubmission
 
 -- One row per (open issue, assigned reviewer): whose move it is and since when.
 -- Rule: the reviewer owes a move if they haven't commented since assignment, or

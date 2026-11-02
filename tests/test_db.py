@@ -147,3 +147,94 @@ def test_reviewer_queue_ball_in_court(tmp_path):
     assert rows[1] == (True, "2026-01-09 00:00:00", 1, 0)
     assert rows[2] == (False, "2026-01-06 00:00:00", 0, 0)
     assert rows[3] == (True, "2026-01-03 00:00:00", 0, 1)
+
+
+RUN = "https://github.com/r-universe/biocstaging/actions/runs/41"
+
+
+def _report(pkg, version, rows, first=False):
+    # Real r-universe bot format (BiocContributions #229, #170).
+    head = ("✅ First" if first else "✅ New") + f" build detected for {pkg}, version {version}.\n"
+    table = "".join(f"| {p} | {r} | {s} | [run]({RUN}/job/{i}) |\n"
+                    for i, (p, r, s) in enumerate(rows))
+    return (head + f"⚙️ Detailed run: {RUN}\n"
+            f"📦 Bioconductor staging repository: https://github.com/BiocStaging/{pkg}\n"
+            f"🌐 R-universe package page: https://biocstaging.r-universe.dev/{pkg}#checktable\n\n"
+            f"📊 R-universe check results for `{pkg}`\n\n"
+            "| Platform | R | Status | URL |\n|----------|---|--------|------|\n" + table)
+
+
+def test_new_tracker_build_reports(tmp_path):
+    repo = "Bioconductor/BiocContributions"
+
+    def issue(n, state="open", labels=()):
+        return {"_repo": repo, "number": n, "title": f"pkg{n}", "state": state,
+                "state_reason": None, "closed_at": None, "user": {"login": "sub"},
+                "created_at": "2026-01-01T00:00:00Z", "updated_at": "2026-03-01T00:00:00Z",
+                "labels": [{"name": x} for x in labels], "assignees": [{"login": "rev"}],
+                "comments": 0, "body": f"- Repository: https://github.com/sub/pkg{n}"}
+
+    def bot(n, i, t, body):
+        return {"_repo": repo, "_issue": n, "id": i, "event": "commented", "created_at": t,
+                "updated_at": t, "author_association": "NONE",
+                "user": {"login": "github-actions[bot]"}, "body": body}
+
+    _write(tmp_path / "bioccontributions" / "issues.jsonl", [
+        issue(1), issue(2, "closed", ["package accepted"]),
+        issue(3, "closed", ["package declined"])])
+    _write(tmp_path / "bioccontributions" / "timeline.jsonl", [
+        {"_repo": repo, "_issue": 1, "id": 9, "event": "assigned",
+         "created_at": "2026-01-02T00:00:00Z",
+         "actor": {"login": "lshep"}, "assignee": {"login": "rev"}, "label": {"name": "x"},
+         "user": {"login": "lshep"}},
+        bot(1, 10, "2026-01-03T00:00:00Z", _report("pkg1", "0.99.0", [
+            ("source", "4.6.1", "✅ OK"), ("bioc-checks", "4.6.1", "⚠️ WARNING"),
+            ("linux-release-x86_64", "4.6.1", "✅ OK")], first=True)),
+        bot(1, 11, "2026-01-09T00:00:00Z", "⚠️ Build detected for pkg1 with invalid version "
+            "bump (0.99.0 -> 1.0.0). Only z should increase (x.99.z e.g. x.99.1, x.99.2); "
+            "please correct version to see a new build report.\n"),
+        bot(1, 12, "2026-01-10T00:00:00Z", _report("pkg1", "0.99.1", [
+            ("source", "4.6.1", "✅ OK"), ("bioc-checks", "4.6.1", "ℹ️ NOTE"),
+            ("windows-release-x86_64", "4.6.1", "❌ ERROR")])),
+        bot(1, 13, "2026-01-11T00:00:00Z", "✅ New build detected for pkg1, version 0.99.2.\n"
+            f"⚙️ Detailed run: {RUN}\n\n"
+            "❌ Package `pkg1` not available in R-universe (likely build failure)"),
+        bot(1, 14, "2026-01-12T00:00:00Z", "✅ New build detected for pkg1, version 0.99.3.\n"
+            "🚨 R-universe build failed for `pkg1` (no check results available)\n\n"
+            "| Platform | R | Status | URL |\n|----------|---|--------|------|\n"
+            f"| ❌ build | — | ❌ BUILD FAILED | [run]({RUN}) |\n"),
+    ])
+    con = db.connect(str(tmp_path))
+
+    reports = con.sql("SELECT version, kind, worst, run_url, staging_url, runiverse_url "
+                      "FROM build_reports ORDER BY posted_at").fetchall()
+    assert [r[:3] for r in reports] == [
+        ("0.99.0", "first", "WARNING"), ("1.0.0", "invalid_version", None),
+        ("0.99.1", "new", "ERROR"), ("0.99.2", "new", "BUILD_FAILED"),
+        ("0.99.3", "new", "BUILD_FAILED")]
+    assert reports[0][3:] == (RUN, "https://github.com/BiocStaging/pkg1",
+                              "https://biocstaging.r-universe.dev/pkg1#checktable")
+
+    checks = con.sql("SELECT platform, r_version, status, url FROM checks "
+                     "WHERE version = '0.99.1' ORDER BY platform").fetchall()
+    assert checks == [("bioc-checks", "4.6.1", "NOTE", f"{RUN}/job/1"),
+                      ("source", "4.6.1", "OK", f"{RUN}/job/0"),
+                      ("windows-release-x86_64", "4.6.1", "ERROR", f"{RUN}/job/2")]
+
+    # First build is not a submitter push; the invalid bump and later builds are.
+    assert con.sql("SELECT pushes_since FROM reviewer_queue").fetchone()[0] == 4
+
+    outcomes = dict(con.sql("SELECT issue_number, outcome FROM packages").fetchall())
+    assert outcomes == {1: "in_progress", 2: "accepted", 3: "declined"}
+
+
+def test_dashboard_issue_info(tmp_path):
+    from bcintel import dashboard
+    test_new_tracker_build_reports(tmp_path)  # reuse its fixture data
+    info = dashboard._issue_info(db.connect(str(tmp_path)))
+    one = info[1]
+    assert one["source_url"] == "https://github.com/sub/pkg1"
+    assert [v["version"] for v in one["versions"]] == [
+        "0.99.0", "1.0.0", "0.99.1", "0.99.2", "0.99.3"]
+    assert one["latest_build"]["version"] == "0.99.3"  # the invalid bump isn't a build
+    assert 2 not in info  # closed issues are left out
