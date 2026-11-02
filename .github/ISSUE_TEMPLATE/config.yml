@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Observations about the Bioconductor contributions process
+    url: https://github.com/seandavi/bioc-contrib-intelligence/issues/20
+    about: Add a factual, non-judgmental note to the tracking issue rather than a new issue.
+  - name: Security vulnerability
+    url: https://github.com/seandavi/bioc-contrib-intelligence/security/advisories/new
+    about: Report privately, please (see SECURITY.md).
