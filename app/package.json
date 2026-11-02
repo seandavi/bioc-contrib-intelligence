@@ -1,0 +1,32 @@
+{
+  "name": "bioc-reviews",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite build && wrangler dev",
+    "build": "vite build",
+    "deploy": "vite build && wrangler deploy",
+    "check": "tsc --noEmit",
+    "test": "bun test",
+    "secrets": "for s in GITHUB_CLIENT_ID:bioc-reviews-github-client-id GITHUB_CLIENT_SECRET:bioc-reviews-github-client-secret SESSION_SECRET:bioc-reviews-session-secret; do gcloud secrets versions access latest --project cdsci-infra --secret ${s#*:} | wrangler secret put ${s%%:*}; done"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "dompurify": "^3.4.17",
+    "hono": "^4.13.16",
+    "marked": "^18.1.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261102.1",
+    "@types/bun": "^1.4.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "wrangler": "^4.156.1"
+  }
+}

@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI review states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F4F5F7;color:#15181D;font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+a{color:#1D5BB8;text-decoration:none}a:hover{color:#123F85;text-decoration:underline}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1500px; box-sizing: border-box; padding: 40px 48px; display: flex; flex-direction: column; gap: 32px; background: #F4F5F7">
+
+  <div style="display: flex; flex-direction: column; gap: 4px">
+    <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em">AI review states</h1>
+    <p style="margin: 0; color: #4B5260">The AI review panel on Review detail, and the axis chips on queue and overview rows.</p>
+  </div>
+
+  <section aria-label="Panel states" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 24px">
+    <sc-for list="{{ panels }}" as="p" hint-placeholder-count="6">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #4B5260">{{ p.label }}</h2>
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; border: 1px solid #D9DCE1; border-radius: 8px; background: #FFFFFF">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+            <span style="font-size: 14px; font-weight: 600">AI review</span>
+            <span style="font-size: 12px; color: #4B5260">{{ p.meta }}</span>
+          </div>
+          <sc-if value="{{ p.hasBanner }}" hint-placeholder-val="{{ false }}">
+            <p style="margin: 0; padding: 8px 10px; border: 1px solid {{ p.banBd }}; border-radius: 6px; background: {{ p.banBg }}; color: {{ p.banFg }}; font-size: 12.5px">{{ p.banner }}</p>
+          </sc-if>
+          <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border: 1px solid #E3E6EA; border-radius: 6px">
+            <sc-for list="{{ p.axes }}" as="x" hint-placeholder-count="5">
+              <li style="display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 10px; border-top: 1px solid {{ x.sep }}">
+                <span aria-hidden="true" style="flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 4px; border: 1px {{ x.dash }} {{ x.bd }}; background: {{ x.bg }}; color: {{ x.fg }}; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 600">{{ x.k }}</span>
+                <span style="font-weight: 500">{{ x.name }}</span>
+                <span style="margin-left: auto; font-size: 12px; font-weight: {{ x.sw }}; color: {{ x.sc }}">{{ x.status }}</span>
+              </li>
+            </sc-for>
+          </ul>
+          <sc-if value="{{ p.showProgress }}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <div role="progressbar" aria-label="AI review progress" aria-valuemin="0" aria-valuemax="5" aria-valuenow="2" style="height: 6px; border-radius: 3px; background: #E3E6EA; overflow: hidden"><div style="width: 40%; height: 100%; background: #1D5BB8"></div></div>
+              <span style="font-size: 12px; color: #4B5260">2 of 5 axes done · results appear as each finishes</span>
+            </div>
+          </sc-if>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <sc-if value="{{ p.hasPrimary }}" hint-placeholder-val="{{ true }}">
+              <button type="button" style="flex: 1 1 auto; min-height: 38px; padding: 0 14px; border: 0; border-radius: 6px; background: #1D5BB8; color: #FFFFFF; font-weight: 600">{{ p.primary }}</button>
+            </sc-if>
+            <sc-if value="{{ p.hasSecondary }}" hint-placeholder-val="{{ true }}">
+              <button type="button" style="flex: 1 1 auto; min-height: 38px; padding: 0 14px; border: 1px solid #C4C9D1; border-radius: 6px; background: #FFFFFF; color: #15181D; font-weight: 500">{{ p.secondary }}</button>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </section>
+
+  <div style="display: flex; gap: 24px; align-items: flex-start">
+
+    <section aria-labelledby="chips" style="flex: 1.6 1 0; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+      <h2 id="chips" style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #4B5260">Chips in table rows</h2>
+      <div style="border: 1px solid #D9DCE1; border-radius: 8px; background: #FFFFFF; overflow: hidden">
+        <sc-for list="{{ rowsChips }}" as="r" hint-placeholder-count="6">
+          <div style="display: grid; grid-template-columns: 130px 150px minmax(0, 1fr); align-items: center; gap: 12px; min-height: 48px; padding: 0 16px; border-top: 1px solid {{ r.sep }}">
+            <span style="font-size: 12.5px; font-weight: 600">{{ r.label }}</span>
+            <span style="display: flex; gap: 3px">
+              <sc-if value="{{ r.notRun }}" hint-placeholder-val="{{ false }}"><span style="color: #5F6673">Not run</span></sc-if>
+              <sc-for list="{{ r.chips }}" as="x" hint-placeholder-count="5">
+                <span aria-hidden="true" style="display: grid; place-items: center; width: 22px; height: 22px; border-radius: 4px; border: 1px {{ x.dash }} {{ x.bd }}; background: {{ x.bg }}; color: {{ x.fg }}; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 600">{{ x.k }}</span>
+              </sc-for>
+            </span>
+            <span style="display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px"><span style="color: {{ r.capColor }}">{{ r.caption }}</span><sc-if value="{{ r.hasLink }}" hint-placeholder-val="{{ false }}"><a href="#" style="font-weight: 500">{{ r.link }}</a></sc-if></span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section aria-labelledby="key" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+      <h2 id="key" style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #4B5260">Key</h2>
+      <div style="display: flex; flex-direction: column; gap: 14px; padding: 14px 16px; border: 1px solid #D9DCE1; border-radius: 8px; background: #FFFFFF">
+        <div style="display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 7px 10px; align-items: center; font-size: 12.5px">
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600; text-align: center">C</span><span>Code</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600; text-align: center">D</span><span>Documentation</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600; text-align: center">F</span><span>Bioconductor vs CRAN fit</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600; text-align: center">O</span><span>Overlap with existing packages</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600; text-align: center">T</span><span>Check triage (optional axis)</span>
+        </div>
+        <div style="border-top: 1px solid #E3E6EA"></div>
+        <div style="display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 7px 10px; align-items: center; font-size: 12.5px">
+          <sc-for list="{{ key }}" as="k" hint-placeholder-count="7">
+            <span aria-hidden="true" style="display: block; width: 22px; height: 22px; box-sizing: border-box; border-radius: 4px; border: 1px {{ k.dash }} {{ k.bd }}; background: {{ k.bg }}"></span>
+            <span>{{ k.label }}</span>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="post" style="flex: 1.15 1 0; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+      <h2 id="post" style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #4B5260">Post confirmation</h2>
+      <div role="dialog" aria-labelledby="post-t" style="display: flex; flex-direction: column; border: 1px solid #C4C9D1; border-radius: 10px; background: #FFFFFF; overflow: hidden">
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 18px 18px 14px">
+          <h3 id="post-t" style="margin: 0; font-size: 16px; font-weight: 600">Post this review to #904?</h3>
+          <p style="margin: 0; color: #2B3038">Posts as <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600">@reviewer-a</span> on</p>
+          <span style="padding: 8px 10px; border-radius: 6px; background: #F7F8FA; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 12.5px">Bioconductor/BiocContributions#904<br>package-d · submitter-4</span>
+          <p style="margin: 0; font-size: 12.5px; color: #4B5260">Your edited text, 5 sections, with the AI-assisted footer at the end.</p>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid #D9DCE1; background: #F7F8FA">
+          <button type="button" style="min-height: 38px; padding: 0 14px; border: 1px solid #C4C9D1; border-radius: 6px; background: #FFFFFF; color: #15181D; font-weight: 500">Keep editing</button>
+          <button type="button" style="min-height: 38px; padding: 0 14px; border: 0; border-radius: 6px; background: #1D5BB8; color: #FFFFFF; font-weight: 600">Post comment</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const C = {
+      ok:       { bg: '#FFFFFF', fg: '#1E5E35', bd: '#A9C9B3', dash: 'solid',  sc: '#1E5E35', sw: 600 },
+      concern:  { bg: '#F2C46D', fg: '#3F2600', bd: '#D9A84A', dash: 'solid',  sc: '#7A4100', sw: 600 },
+      blocker:  { bg: '#B42318', fg: '#FFFFFF', bd: '#B42318', dash: 'solid',  sc: '#B42318', sw: 600 },
+      running:  { bg: '#FFFFFF', fg: '#1D5BB8', bd: '#1D5BB8', dash: 'dashed', sc: '#1D4E99', sw: 500 },
+      queued:   { bg: '#FFFFFF', fg: '#5F6673', bd: '#B9BEC7', dash: 'dashed', sc: '#5F6673', sw: 400 },
+      failed:   { bg: '#FFFFFF', fg: '#B42318', bd: '#B42318', dash: 'dashed', sc: '#B42318', sw: 600 },
+      outdated: { bg: '#EEF0F3', fg: '#5F6673', bd: '#D3D7DD', dash: 'solid',  sc: '#5F6673', sw: 400 }
+    };
+    const names = [['C', 'Code'], ['D', 'Documentation'], ['F', 'Bioconductor vs CRAN fit'], ['O', 'Overlap'], ['T', 'Check triage']];
+    const axes = (spec) => spec.map(([kind, status], i) => Object.assign({ k: names[i][0], name: names[i][1], status, sep: i === 0 ? 'transparent' : '#E3E6EA' }, C[kind]));
+    const chips = (kinds) => kinds.map((kind, i) => Object.assign({ k: names[i][0] }, C[kind]));
+
+    const banner = (kind, text) => {
+      const B = {
+        error: { banBg: '#FDF1EF', banFg: '#8A1C12', banBd: '#E2A79E' },
+        warn:  { banBg: '#FDF6E3', banFg: '#5C3F00', banBd: '#E3C574' },
+        info:  { banBg: '#EEF4FC', banFg: '#1D4E99', banBd: '#B5CBF0' }
+      };
+      return Object.assign({ hasBanner: true, banner: text }, B[kind]);
+    };
+    const base = { hasBanner: false, banner: '', banBg: '', banFg: '', banBd: '', showProgress: false, hasPrimary: true, hasSecondary: false, primary: '', secondary: '' };
+
+    const panels = [
+      Object.assign({}, base, { label: 'Not run', meta: 'version 0.99.0',
+        axes: axes([['queued', 'not run'], ['queued', 'not run'], ['queued', 'not run'], ['queued', 'not run'], ['queued', 'not run']]),
+        primary: 'Run AI review on 0.99.0' }),
+      Object.assign({}, base, { label: 'Running', meta: 'started 20 s ago',
+        axes: axes([['ok', 'ok'], ['concern', 'concern'], ['running', 'running…'], ['running', 'running…'], ['queued', 'queued']]),
+        showProgress: true, hasPrimary: false, hasSecondary: true, secondary: 'Cancel' }),
+      Object.assign({}, base, { label: 'Done', meta: '0.99.4 · 2 Nov 11:02',
+        axes: axes([['ok', 'ok'], ['concern', 'concern'], ['ok', 'ok'], ['concern', 'concern'], ['ok', 'ok']]),
+        primary: 'Open review', hasSecondary: true, secondary: 'Copy markdown' }),
+      Object.assign({}, base, banner('error', 'Overlap didn’t finish: the package index timed out. The other four results are kept.'), { label: 'Partly failed', meta: '0.99.4 · 2 Nov 11:02',
+        axes: axes([['ok', 'ok'], ['concern', 'concern'], ['ok', 'ok'], ['failed', 'failed'], ['ok', 'ok']]),
+        primary: 'Open review', hasSecondary: true, secondary: 'Retry Overlap' }),
+      Object.assign({}, base, banner('warn', '0.99.3 was pushed after this review ran on 0.99.2. Verdicts may no longer hold.'), { label: 'Outdated', meta: 'ran on 0.99.2',
+        axes: axes([['outdated', 'ok on 0.99.2'], ['outdated', 'ok on 0.99.2'], ['outdated', 'ok on 0.99.2'], ['outdated', 'ok on 0.99.2'], ['outdated', 'concern on 0.99.2']]),
+        primary: 'Re-run on 0.99.3', hasSecondary: true, secondary: 'View old review' }),
+      Object.assign({}, base, banner('info', 'Posted to #889 by reviewer-a on 23 Sep, after editing.'), { label: 'Posted', meta: '0.99.1 · 23 Sep',
+        axes: axes([['concern', 'concern'], ['concern', 'concern'], ['ok', 'ok'], ['ok', 'ok'], ['ok', 'ok']]),
+        primary: 'View comment on GitHub', hasSecondary: true, secondary: 'Open review' })
+    ];
+
+    const rowsChips = [
+      { label: 'Not run', notRun: true, chips: [], caption: '', capColor: '#4B5260', hasLink: true, link: 'Run on 0.99.0' },
+      { label: 'Running', notRun: false, chips: chips(['ok', 'concern', 'running', 'running', 'queued']), caption: 'Running · 2 of 5 axes', capColor: '#4B5260', hasLink: false, link: '' },
+      { label: 'Done', notRun: false, chips: chips(['ok', 'concern', 'ok', 'concern', 'ok']), caption: 'On 0.99.4 · 2 concerns', capColor: '#4B5260', hasLink: false, link: '' },
+      { label: 'Partly failed', notRun: false, chips: chips(['ok', 'concern', 'ok', 'failed', 'ok']), caption: '1 axis failed', capColor: '#B42318', hasLink: true, link: 'Retry' },
+      { label: 'Outdated', notRun: false, chips: chips(['outdated', 'outdated', 'outdated', 'outdated', 'outdated']), caption: 'Outdated · ran on 0.99.2', capColor: '#9A2E12', hasLink: true, link: 'Re-run on 0.99.3' },
+      { label: 'Posted', notRun: false, chips: chips(['concern', 'concern', 'ok', 'ok', 'ok']), caption: 'On 0.99.1 · posted 23 Sep', capColor: '#4B5260', hasLink: true, link: 'View comment' }
+    ].map((r, i) => Object.assign({ sep: i === 0 ? 'transparent' : '#E3E6EA' }, r));
+
+    const key = [
+      ['ok', 'ok'], ['concern', 'concern'], ['blocker', 'blocker'], ['running', 'running'],
+      ['queued', 'not run / queued'], ['failed', 'axis failed'], ['outdated', 'outdated (newer version pushed)']
+    ].map(([kind, label]) => Object.assign({ label }, C[kind]));
+
+    return { panels, rowsChips, key };
+  }
+}
+</script>
+</body>
+</html>

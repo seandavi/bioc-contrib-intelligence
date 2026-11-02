@@ -1,0 +1,81 @@
+/* Bioconductor reviewer app: design tokens, verbatim from design/tokens.css (fonts self-hosted in main.tsx) */
+
+:root {
+  /* Type */
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --text-base: 13px;
+  --text-sm: 12px;
+  --leading: 1.45;
+  --title: 22px;
+  --section-title: 14px;
+  --stat: 26px;
+
+  /* Neutrals */
+  --ground: #F4F5F7;
+  --surface: #FFFFFF;
+  --surface-subtle: #F7F8FA;
+  --border: #D9DCE1;
+  --divider: #E3E6EA;
+  --control-border: #C4C9D1;
+  --input-border: #B9BEC7;
+  --text: #15181D;
+  --text-2: #2B3038;
+  --muted: #4B5260;
+  --muted-2: #5F6673;
+
+  /* App bar */
+  --bar-bg: #15181D;
+  --bar-active: #2B3038;
+  --bar-text: #E6E8EC;
+  --bar-muted: #C9CED6;
+
+  /* Accent and status */
+  --accent: #1D5BB8;
+  --accent-hover: #123F85;
+  --accent-text: #1D4E99;
+  --accent-tint: #EAF1FC;
+  --risk: #9A2E12;
+  --error: #B42318;
+  --error-text: #8A1C12;
+  --error-tint: #FDF1EF;
+  --error-border: #E2A79E;
+
+  /* Admin / roles */
+  --admin: #6B4FA8;
+  --admin-text: #4E3585;
+  --admin-tint: #EFEAF8;
+  --admin-border: #CDBFE6;
+  --role-reviewer: #1D5BB8;
+  --role-submitter: #B85C1D;
+  --role-submitter-tint: #FBF1E9;
+  --role-submitter-border: #E9C9B0;
+  --role-core: #6B4FA8;
+  --role-bot: #8A919C;
+
+  /* Wait bands: fresh <=14 d, due 15-28, stale 29-60, stalled >60 */
+  --band-fresh-bg: #EEF0F3;   --band-fresh-fg: #3B4250;   --band-fresh-bd: #D3D7DD;
+  --band-due-bg: #F8E3A8;     --band-due-fg: #5C3F00;     --band-due-bd: #E3C574;
+  --band-stale-bg: #F0A76A;   --band-stale-fg: #3D1A00;   --band-stale-bd: #DB8F4E;
+  --band-stalled-bg: #7E2A10; --band-stalled-fg: #FFFFFF; --band-stalled-bd: #7E2A10;
+
+  /* Check results (also AI verdicts: ok = ok, concern = warning, blocker = error) */
+  --check-ok-bg: #FFFFFF;     --check-ok-fg: #1E5E35;     --check-ok-bd: #A9C9B3;
+  --check-note-bg: #DCE7FA;   --check-note-fg: #1D4E99;   --check-note-bd: #B5CBF0;
+  --check-warn-bg: #F2C46D;   --check-warn-fg: #3F2600;   --check-warn-bd: #D9A84A;
+  --check-error-bg: #B42318;  --check-error-fg: #FFFFFF;  --check-error-bd: #B42318;
+  --check-none-fg: #5F6673;   --check-none-bd: #B9BEC7;   /* dashed border */
+
+  /* AI-only states */
+  --ai-running: #1D5BB8;      /* dashed border + text */
+  --ai-failed: #B42318;       /* dashed border + text */
+  --ai-outdated-bg: #EEF0F3;  --ai-outdated-fg: #5F6673;  --ai-outdated-bd: #D3D7DD;
+
+  /* Shape */
+  --radius-chip: 4px;
+  --radius-control: 6px;
+  --radius-card: 8px;
+  --radius-dialog: 10px;
+  --content-max: 1392px;
+  --page-pad: 24px;
+}

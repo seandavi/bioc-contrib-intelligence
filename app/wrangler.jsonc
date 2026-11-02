@@ -1,0 +1,23 @@
+// Reviewer app: one Worker. Hono handles /api, /auth and /mcp; everything else is
+// the React SPA from ./dist. Data is the bcintel snapshot that onclappc02 syncs to
+// R2 every 5 min (bucket made in seandavi/monode, apps/bioc_reviews).
+{
+  "name": "bioc-reviews",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/auth/*", "/mcp"]
+  },
+  // remote: `wrangler dev` reads the real bucket too.
+  "r2_buckets": [{ "binding": "DATA", "bucket_name": "data-bioc-reviews", "remote": true }],
+  "vars": {
+    "REPO": "Bioconductor/BiocContributions",
+    // ponytail: one release deadline, edited by redeploy (decision in #12).
+    "DEADLINE": "2026-11-18",
+    "DEADLINE_LABEL": "Bioconductor 3.24 manifest"
+  }
+  // Secrets (wrangler secret put): GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, SESSION_SECRET.
+}

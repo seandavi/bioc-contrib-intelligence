@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reassign review · saintexpress</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF;color:#15181D;font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+a{color:#1D5BB8;text-decoration:none}a:hover{color:#123F85;text-decoration:underline}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+</style>
+</helmet>
+<div role="dialog" aria-labelledby="dlg-title" style="width: 680px; height: 1100px; box-sizing: border-box; display: flex; flex-direction: column; background: #FFFFFF; border: 1px solid #C4C9D1; border-radius: 10px; overflow: hidden">
+
+  <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px 14px; border-bottom: 1px solid #D9DCE1">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <h1 id="dlg-title" style="margin: 0; font-size: 17px; font-weight: 600">Change reviewer</h1>
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 12.5px; color: #4B5260">#170 saintexpress · submitter-1</span>
+    </div>
+    <button type="button" aria-label="Close" style="display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 6px; background: #F4F5F7; color: #2B3038"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 18px; padding: 18px 20px">
+
+    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+      <legend style="padding: 0; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: #4B5260">Action</legend>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid #B9BEC7; border-radius: 7px; overflow: hidden">
+        <label style="display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; background: #FFFFFF; color: #2B3038; font-weight: 500"><input type="radio" name="mode" style="margin: 0">Add reviewer</label>
+        <label style="display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border-left: 1px solid #B9BEC7; background: #FFFFFF; color: #2B3038; font-weight: 500"><input type="radio" name="mode" style="margin: 0">Unassign</label>
+        <label style="display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border-left: 1px solid #15181D; background: #15181D; color: #FFFFFF; font-weight: 600"><input type="radio" name="mode" checked style="margin: 0; accent-color: #FFFFFF">Reassign</label>
+      </div>
+      <span style="font-size: 12px; color: #4B5260">Reassign removes the current reviewer and adds the new one in one step.</span>
+    </fieldset>
+
+    <section aria-labelledby="cur" style="display: flex; flex-direction: column; gap: 8px">
+      <h2 id="cur" style="margin: 0; font-size: 12px; font-weight: 600; color: #4B5260">Current reviewer</h2>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 10px 12px; border: 1px solid #D9DCE1; border-radius: 7px; background: #F7F8FA">
+        <span aria-hidden="true" style="display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #E3ECFA; color: #1D4E99; font-size: 10px; font-weight: 600">RA</span>
+        <div style="display: flex; flex-direction: column">
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600">reviewer-a</span>
+          <span style="font-size: 12px; color: #4B5260">Had it 66 d (since 28 Aug) · no comments · 6 open, 4 their move</span>
+        </div>
+        <span style="margin-left: auto; padding: 1px 8px; border-radius: 4px; border: 1px solid #9A2E12; color: #9A2E12; font-size: 12px; font-weight: 600">Will be removed</span>
+      </div>
+    </section>
+
+    <section aria-labelledby="cand" style="display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px">
+        <h2 id="cand" style="margin: 0; font-size: 12px; font-weight: 600; color: #4B5260">New reviewer</h2>
+        <span style="font-size: 12px; color: #4B5260">Sorted by their move, then oldest wait</span>
+      </div>
+      <label for="find" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Find a reviewer</label>
+      <input id="find" type="search" placeholder="Find a reviewer" style="min-height: 36px; box-sizing: border-box; padding: 0 10px; border: 1px solid #B9BEC7; border-radius: 6px; font-size: 13px">
+      <div role="radiogroup" aria-labelledby="cand" style="display: flex; flex-direction: column; border: 1px solid #D9DCE1; border-radius: 7px; overflow: hidden">
+        <div aria-hidden="true" style="display: grid; grid-template-columns: 28px minmax(0, 1fr) 54px 74px 110px 92px; gap: 8px; padding: 7px 12px; background: #F7F8FA; font-size: 11.5px; font-weight: 500; color: #4B5260">
+          <span></span><span>Reviewer</span><span style="text-align: right">Open</span><span style="text-align: right">Their move</span><span>Oldest wait</span><span>Topic match</span>
+        </div>
+        <sc-for list="{{ candidates }}" as="c" hint-placeholder-count="8">
+          <label style="display: grid; grid-template-columns: 28px minmax(0, 1fr) 54px 74px 110px 92px; gap: 8px; align-items: center; min-height: 44px; padding: 0 12px; border-top: 1px solid #E3E6EA; background: {{ c.rowBg }}; cursor: pointer">
+            <input type="radio" name="reviewer" checked="{{ c.sel }}" style="margin: 0; width: 16px; height: 16px; accent-color: #1D5BB8">
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600">{{ c.login }}</span>
+            <span style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace">{{ c.open }}</span>
+            <span style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600">{{ c.move }}</span>
+            <span><span style="display: inline-flex; align-items: baseline; gap: 5px; padding: 0 7px; border-radius: 4px; border: 1px solid {{ c.bBd }}; background: {{ c.bBg }}; color: {{ c.bFg }}; font-size: 12px; font-weight: 500"><span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600">{{ c.oldest }}</span>{{ c.band }}</span></span>
+            <span style="font-size: 12px; color: #5F6673">later</span>
+          </label>
+        </sc-for>
+        <button type="button" style="min-height: 40px; border: 0; border-top: 1px solid #E3E6EA; background: #FFFFFF; color: #1D5BB8; font-size: 12.5px; font-weight: 500">Show 8 more reviewers</button>
+      </div>
+    </section>
+
+    <section aria-labelledby="cm" style="display: flex; flex-direction: column; gap: 8px">
+      <label style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600"><input type="checkbox" checked style="margin: 0; width: 16px; height: 16px; accent-color: #1D5BB8"><span id="cm">Post a comment on #170</span></label>
+      <label for="cmt" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Comment text</label>
+      <textarea id="cmt" rows="3" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #B9BEC7; border-radius: 6px; resize: vertical; font-size: 13px; line-height: 1.5; color: #15181D">Reassigning to @reviewer-q to keep this on track for 3.24. Thanks @reviewer-a.</textarea>
+      <span style="font-size: 12px; color: #4B5260">Prefilled, edit as you like. Posted as you.</span>
+    </section>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid #D9DCE1; background: #F7F8FA">
+    <button type="button" style="min-height: 38px; padding: 0 16px; border: 1px solid #C4C9D1; border-radius: 6px; background: #FFFFFF; color: #15181D; font-weight: 500">Cancel</button>
+    <a href="AssignConfirm.dc.html" style="display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 16px; border-radius: 6px; background: #15181D; color: #FFFFFF; font-weight: 600; text-decoration: none">Review changes<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":680,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const B = {
+      fresh:   { bg: '#EEF0F3', fg: '#3B4250', bd: '#D3D7DD' },
+      due:     { bg: '#F8E3A8', fg: '#5C3F00', bd: '#E3C574' },
+      stale:   { bg: '#F0A76A', fg: '#3D1A00', bd: '#DB8F4E' },
+      stalled: { bg: '#7E2A10', fg: '#FFFFFF', bd: '#7E2A10' },
+      none:    { bg: '#FFFFFF', fg: '#5F6673', bd: '#D3D7DD' }
+    };
+    const bandOf = (d) => d == null ? 'none' : d <= 14 ? 'fresh' : d <= 28 ? 'due' : d <= 60 ? 'stale' : 'stalled';
+    const rows = [
+      ['reviewer-q', 2, 0, null, true], ['reviewer-p', 3, 1, 6], ['reviewer-o', 3, 1, 9], ['reviewer-m', 5, 1, 12],
+      ['reviewer-n', 4, 2, 17], ['reviewer-l', 5, 2, 21], ['reviewer-i', 7, 2, 26], ['reviewer-g', 8, 3, 35]
+    ];
+    const candidates = rows.map(([login, open, move, oldest, sel]) => {
+      const band = bandOf(oldest); const b = B[band];
+      return {
+        login, open, move, sel: !!sel,
+        oldest: oldest == null ? '—' : oldest + ' d', band: oldest == null ? '' : band,
+        bBg: b.bg, bFg: b.fg, bBd: b.bd,
+        rowBg: sel ? '#EAF1FC' : '#FFFFFF'
+      };
+    });
+    return { candidates };
+  }
+}
+</script>
+</body>
+</html>

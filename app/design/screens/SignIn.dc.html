@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in · Bioconductor Reviews</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F4F5F7;color:#15181D;font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+a{color:#1D5BB8;text-decoration:none}a:hover{color:#123F85;text-decoration:underline}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; background: #F4F5F7">
+
+  <main style="flex: 1; display: grid; place-items: center; padding: 48px 16px">
+    <div style="width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 22px">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span aria-hidden="true" style="display: grid; place-items: center; width: 40px; height: 40px; border-radius: 8px; background: #15181D; color: #FFFFFF; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 15px; font-weight: 600">BR</span>
+        <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em">Bioconductor Reviews</h1>
+      </div>
+
+      <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #2B3038">Where every BiocContributions review stands: whose move it is, and how long it has been waiting.</p>
+
+      <div style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border: 1px solid #D9DCE1; border-radius: 10px; background: #FFFFFF">
+        <button type="button" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 46px; border: 0; border-radius: 7px; background: #15181D; color: #FFFFFF; font-size: 14px; font-weight: 600">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="m10 17 5-5-5-5"></path><path d="M15 12H3"></path></svg>
+          Sign in with GitHub
+        </button>
+        <p style="margin: 0; font-size: 12.5px; color: #4B5260">Comments and assignments you make here are posted to GitHub as you, so GitHub decides what you’re allowed to do.</p>
+      </div>
+
+      <p style="margin: 0; display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: #4B5260"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 2px"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg><span>Built from public issue data on Bioconductor/BiocContributions, refreshed every 6 hours.</span></p>
+    </div>
+  </main>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

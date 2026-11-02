@@ -31,6 +31,8 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 API = "https://api.github.com"
 REPOS = ["Bioconductor/Contributions", "Bioconductor/BiocContributions"]
 CONCURRENCY = 10
+# All staging packages' current check results in one call (~300 KB).
+RUNIVERSE = "https://biocstaging.r-universe.dev/api/packages?fields=_jobs,_commit,Version&limit=1000"
 
 
 def token() -> str:
@@ -200,3 +202,26 @@ def fetch(
 ) -> None:
     """Sync entry point; runs the async producer/consumer backfill."""
     asyncio.run(_run(repos, data_dir, limit, concurrency))
+
+
+def fetch_runiverse(data_dir: Path) -> None:
+    """Current check results for every package in the biocstaging r-universe.
+
+    r-universe re-runs checks (monthly rebuilds, dependency changes) without
+    posting to the submission issue, so the bot's last report can be stale.
+    Overwrites data/runiverse/biocstaging.json; history belongs in bioc-registry
+    (seandavi/bioc-infrastructure#175). A failed fetch keeps the previous file.
+    """
+    try:
+        r = httpx.get(RUNIVERSE, timeout=30)
+        r.raise_for_status()
+        pkgs = r.json()
+    except (httpx.HTTPError, ValueError) as e:
+        print(f"  r-universe: skipped ({e})")
+        return
+    out = data_dir / "runiverse" / "biocstaging.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_suffix(".tmp")
+    tmp.write_text(json.dumps(pkgs))
+    tmp.replace(out)  # atomic: the dashboard never reads a half-written file
+    print(f"  r-universe: {len(pkgs)} staging packages")

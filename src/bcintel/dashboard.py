@@ -65,12 +65,36 @@ def _rows(con, sql: str) -> list[dict]:
     return [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]
 
 
+def _read_json(p: Path) -> list:
+    return json.loads(p.read_text()) if p.exists() else []
+
+
 def _enc(o):
     # Timestamps from DuckDB are naive UTC; tag them so the browser parses UTC.
     return o.isoformat() + "Z" if isinstance(o, datetime) else str(o)
 
 
-def _issue_info(con) -> dict[int, dict]:
+RANK = {"OK": 0, "NOTE": 2, "WARNING": 3, "ERROR": 4}  # anything else ranks as UNKNOWN (1)
+
+
+def _worst(statuses) -> str | None:
+    return max(statuses, key=lambda s: RANK.get(s, 1), default=None)
+
+
+def _live(pkgs: list[dict]) -> dict[str, dict]:
+    """r-universe's current results per staging package (lower-cased name)."""
+    out = {}
+    for p in pkgs:
+        jobs = [{"platform": j.get("config"), "r_version": j.get("r"), "status": j.get("check")}
+                for j in p.get("_jobs") or [] if j.get("check")]
+        t = (p.get("_commit") or {}).get("time")
+        out[p["Package"].lower()] = {
+            "version": p.get("Version"), "jobs": jobs, "worst": _worst(j["status"] for j in jobs),
+            "commit_time": datetime.fromtimestamp(t, timezone.utc).isoformat() if t else None}
+    return out
+
+
+def _issue_info(con, live: dict[str, dict] | None = None) -> dict[int, dict]:
     """Per open issue: package links, the latest build report with its per-platform
     checks, and the version history (invalid bumps included, flagged by kind)."""
     checks: dict[int, list] = {}
@@ -85,6 +109,13 @@ def _issue_info(con) -> dict[int, dict]:
         if r["kind"] != "invalid_version":
             it["latest_build"] = {**{k: v for k, v in r.items() if k != "issue_number"},
                                   "checks": checks.get(r["comment_id"], [])}
+    for it in info.values():
+        lv = (live or {}).get((it.get("package") or "").lower())
+        it["live"] = lv
+        b = it["latest_build"]
+        # The issue's report no longer matches r-universe (newer version or a re-run).
+        it["live_differs"] = bool(lv and b and lv["jobs"] and
+                                  (lv["version"] != b["version"] or lv["worst"] != b["worst"]))
     return info
 
 
@@ -98,7 +129,7 @@ def build(data_dir: Path, out_dir: Path) -> Path:
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "queue": _rows(con, QUEUE),
         "unassigned": _rows(con, UNASSIGNED),
-        "issues": _issue_info(con),
+        "issues": _issue_info(con, _live(_read_json(data_dir / "runiverse" / "biocstaging.json"))),
     }
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "data.json").write_text(json.dumps(data, default=_enc))
