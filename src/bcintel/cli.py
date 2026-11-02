@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 
 from . import bot, dashboard, db, review
-from .fetch import CONCURRENCY, REPOS, fetch
+from .fetch import CONCURRENCY, REPOS, fetch, fetch_runiverse
 
 DATA = Path("data")
 
@@ -89,6 +89,7 @@ def main(argv: list[str] | None = None) -> None:
     elif a.cmd == "cycle":
         repos = a.repo or REPOS
         fetch(repos, DATA, None, CONCURRENCY)
+        fetch_runiverse(DATA)
         # Package review is off the timer (on hold, and its build parsing misses the
         # new tracker); run `bcintel review` by hand. The dashboard ships a stub.
         dashboard.build(DATA, Path(a.site))
