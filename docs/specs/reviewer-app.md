@@ -77,7 +77,7 @@ remaining review time. The deadline is an admin-set date; there's no feed for it
 ## 4. Data available
 
 Everything comes from public GitHub data on `Bioconductor/BiocContributions` (issues +
-full per-issue timeline), refreshed every 6 h. ✅ = in the current data, 🔧 =
+full per-issue timeline), refreshed every 5 min. ✅ = in the current data, 🔧 =
 derivable from data we already store, but not yet computed, ❌ = not available.
 
 ### 4.1 Per assignment (the queue row)
@@ -177,7 +177,7 @@ Opened from Overview, the Needs-attention list, or Review detail.
 
 ### 6.1 Read
 
-Every page works from the 6-hourly data snapshot. No GitHub calls needed to browse.
+Every page works from the data snapshot (refreshed every 5 min). No GitHub calls needed to browse.
 
 ### 6.2 Write actions (all use the signed-in user's GitHub token)
 
