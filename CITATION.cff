@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: >-
+  bioc-contrib-intelligence: review-queue intelligence for Bioconductor
+  package submissions
+message: If you use this software or its data, please cite it as below.
+type: software
+authors:
+  - given-names: Sean
+    family-names: Davis
+    email: seandavi@gmail.com
+repository-code: https://github.com/seandavi/bioc-contrib-intelligence
+url: https://bioc-reviews.seandavi.workers.dev
+abstract: >-
+  Derives the current state of each Bioconductor package submission (whose
+  move it is, how long it has waited, current r-universe check results) from
+  the BiocContributions issue tracker and r-universe, and serves it to
+  reviewers and the core team through a web app and API.
+keywords:
+  - bioconductor
+  - r
+  - code-review
+  - peer-review
+  - r-universe
+license: MIT
