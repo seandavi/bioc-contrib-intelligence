@@ -1,0 +1,16 @@
+name: Bug
+description: Something in the app, API or pipeline is wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: For a wrong wait time or status, include the BiocContributions issue number.
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Page or command
+      placeholder: "e.g. #/i/170, /api/data, bcintel cycle"
