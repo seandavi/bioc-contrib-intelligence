@@ -1,0 +1,11 @@
+name: Feature or idea
+description: Something the app, API or data should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What would it help you do?
+      description: Who needs it (reviewer, core team, submitter) and what they'd see.
+    validations:
+      required: true
