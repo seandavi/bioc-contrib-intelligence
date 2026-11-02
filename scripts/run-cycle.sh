@@ -9,5 +9,9 @@ cd "$REPO"
 mkdir -p bot_out
 exec >> bot_out/cron.log 2>&1
 echo "===== cycle $(date -u +%Y-%m-%dT%H:%M:%SZ) ====="
-uv run bcintel cycle
+# Live tracker every tick; the legacy tracker (history) only in the first tick after 00:00 UTC.
+# ponytail: a missed midnight tick skips legacy for a day; harmless for a frozen tracker.
+REPOS=(--repo Bioconductor/BiocContributions)
+[ "$(date -u +%H%M)" \< "0005" ] && REPOS=()
+uv run bcintel cycle "${REPOS[@]}"
 echo "----- done $(date -u +%Y-%m-%dT%H:%M:%SZ) -----"
