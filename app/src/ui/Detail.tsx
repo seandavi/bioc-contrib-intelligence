@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, atRisk, band, type Data, days, type Entry, glyph, type Me, short } from "./lib";
-import { AXES, AiChips, Checks, Md, Wait } from "./parts";
+import { api, atRisk, band, type Check, type Data, days, type Entry, glyph, type Me, short } from "./lib";
+import { AXES, AiChips, Checks, Differs, Md, Wait } from "./parts";
 
 const AI_FOOTER = (login: string) =>
   `\n\n---\n_Drafted with AI assistance in Bioconductor Reviews and edited by @${login}._`;
@@ -26,6 +26,7 @@ export function Detail({ n, data, me }: { n: number; data: Data; me: Me }) {
   const you = !!mine && mine.reviewer.toLowerCase() === me.login.toLowerCase();
   const gh = `https://github.com/${data.repo}/issues/${n}`;
   const b = info?.latest_build;
+  const live = info?.live?.jobs.length ? info.live : null;
 
   if (!rows.length && !un) return <div className="banner err">Issue #{n} isn’t in your view.</div>;
   const d = mine ? days(mine.waiting_since) : days(un!.created_at);
@@ -99,23 +100,28 @@ export function Detail({ n, data, me }: { n: number; data: Data; me: Me }) {
           </section>
         </div>
         <aside className="rail">
-          <section className="card" aria-label="Latest checks">
-            <div className="head"><h2>Latest checks{b && <span className="mono small muted">{b.version}</span>}</h2></div>
+          <section className="card" aria-label="Current checks">
+            <div className="head"><h2>Current checks{(live ?? b) && <span className="mono small muted">{live?.version ?? b!.version}</span>}</h2></div>
             <div className="body">
-              {b ? (
+              {info?.live_differs && <p style={{ marginTop: 0 }}><Differs info={info} /></p>}
+              <Checks info={info} />
+              {live ? (
                 <>
-                  <Checks build={b} />
-                  <table style={{ minWidth: 0, marginTop: 8 }}>
-                    <thead><tr><th>Platform</th><th>R</th><th>Status</th><th>Log</th></tr></thead>
-                    <tbody>{b.checks.map((c) => (
-                      <tr key={c.platform}><td className="mono small">{c.platform}</td><td className="mono small">{c.r_version}</td>
-                        <td><span className={`ck ck-${c.status}`}>{c.status === "OK" ? "OK" : `${glyph(c.status)} ${c.status}`}</span></td>
-                        <td><a href={c.url} target="_blank" rel="noreferrer">log</a></td></tr>
-                    ))}</tbody>
-                  </table>
+                  <CheckTable checks={live.jobs} />
                   <p className="note" style={{ marginTop: 8 }}>
-                    From the bot’s newest build report ({short(b.posted_at)}). Issue labels pile up, so they aren’t used here.
+                    Live from r-universe (commit {short(live.commit_time)}). r-universe re-runs checks without posting to the issue.
                   </p>
+                  {b && (
+                    <details>
+                      <summary className="small">Bot’s report on the issue · {b.version} · {short(b.posted_at)}</summary>
+                      <CheckTable checks={b.checks} />
+                    </details>
+                  )}
+                </>
+              ) : b ? (
+                <>
+                  <CheckTable checks={b.checks} />
+                  <p className="note" style={{ marginTop: 8 }}>From the bot’s newest build report ({short(b.posted_at)}).</p>
                 </>
               ) : <p className="muted">No build report on the issue yet.</p>}
               <div className="kv" style={{ marginTop: 10 }}>
@@ -151,6 +157,19 @@ export function Detail({ n, data, me }: { n: number; data: Data; me: Me }) {
         </aside>
       </div>
     </>
+  );
+}
+
+function CheckTable({ checks }: { checks: Check[] }) {
+  return (
+    <table style={{ minWidth: 0, marginTop: 8 }}>
+      <thead><tr><th>Platform</th><th>R</th><th>Status</th><th>Log</th></tr></thead>
+      <tbody>{checks.map((c) => (
+        <tr key={c.platform}><td className="mono small">{c.platform}</td><td className="mono small">{c.r_version}</td>
+          <td><span className={`ck ck-${c.status}`}>{c.status === "OK" ? "OK" : `${glyph(c.status)} ${c.status}`}</span></td>
+          <td>{c.url ? <a href={c.url} target="_blank" rel="noreferrer">log</a> : <span className="muted">—</span>}</td></tr>
+      ))}</tbody>
+    </table>
   );
 }
 

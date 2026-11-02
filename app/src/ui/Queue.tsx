@@ -89,7 +89,7 @@ function Section({ title, rows, data, me, you, open: initial }:
                       {atRisk(r, me.deadline) && <span className="tag tag-risk">⚠ At risk for {me.deadline_label.replace(/^Bioconductor /, "")}</span>}
                     </div></td>
                     <td>{sinceText(r)}<div className="small muted">{r.reviewer_last ? `since ${short(r.reviewer_last)}` : "since assignment"}</div></td>
-                    <td><Checks build={data.issues[r.issue_number]?.latest_build} /></td>
+                    <td><Checks info={data.issues[r.issue_number]} /></td>
                     <td>{r.stage ?? "—"}<div className="small muted">{r.stage_since && `since ${short(r.stage_since)}`}</div></td>
                     <td><div className="clamp small">{r.last_comment ?? <span className="muted">No human comments yet</span>}</div></td>
                     <td><AiChips /></td>

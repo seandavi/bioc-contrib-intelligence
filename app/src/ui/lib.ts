@@ -8,13 +8,15 @@ export type QueueRow = {
   stage_since: string | null; last_comment: string | null;
 };
 export type Unassigned = { issue_number: number; title: string; submitter: string; created_at: string; labels: string[] };
-export type Check = { platform: string; r_version: string; status: string; url: string };
+export type Check = { platform: string; r_version: string; status: string; url?: string };
 export type Build = {
   comment_id: number; posted_at: string; kind: string; version: string; worst: string | null;
   run_url: string | null; staging_url: string | null; runiverse_url: string | null; checks: Check[];
 };
+// r-universe's current results; can differ from the bot's last report on the issue.
+export type Live = { version: string | null; worst: string | null; commit_time: string | null; jobs: Check[] };
 export type IssueInfo = {
-  package?: string; source_url?: string; latest_build: Build | null;
+  package?: string; source_url?: string; latest_build: Build | null; live: Live | null; live_differs: boolean;
   versions: Array<{ version: string; posted_at: string; kind: string; worst: string | null }>;
 };
 export type Data = {

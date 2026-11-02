@@ -238,3 +238,18 @@ def test_dashboard_issue_info(tmp_path):
         "0.99.0", "1.0.0", "0.99.1", "0.99.2", "0.99.3"]
     assert one["latest_build"]["version"] == "0.99.3"  # the invalid bump isn't a build
     assert 2 not in info  # closed issues are left out
+
+
+def test_dashboard_live_runiverse(tmp_path):
+    from bcintel import dashboard
+    test_new_tracker_build_reports(tmp_path)  # issue 1 = pkg1, latest report 0.99.3 (build failed)
+    jobs = [{"config": "source", "r": "4.6.1", "check": "OK"},
+            {"config": "macos-release-arm64", "r": "4.6.1", "check": "ERROR"},
+            {"config": "pending"}]
+    live = dashboard._live([{"Package": "PKG1", "Version": "0.99.3",
+                             "_commit": {"time": 1789295583}, "_jobs": jobs}])
+    one = dashboard._issue_info(db.connect(str(tmp_path)), live)[1]
+    assert one["live"]["worst"] == "ERROR"
+    assert [j["platform"] for j in one["live"]["jobs"]] == ["source", "macos-release-arm64"]
+    assert one["live_differs"] is True  # report says BUILD_FAILED, r-universe says ERROR
+    assert dashboard._issue_info(db.connect(str(tmp_path)))[1]["live"] is None  # no snapshot yet

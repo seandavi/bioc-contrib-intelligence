@@ -75,7 +75,7 @@ function Attention({ data, me }: { data: Data; me: Me }) {
             <li key={u.issue_number}>
               <a href={`#/i/${u.issue_number}`} className="mono">{data.issues[u.issue_number]?.package ?? u.title}</a> <span className="mono muted">#{u.issue_number} · {u.submitter}</span>{" "}
               <Wait d={days(u.created_at)} /> <span className="small muted">opened {short(u.created_at)}</span>{" "}
-              <Checks build={data.issues[u.issue_number]?.latest_build} />
+              <Checks info={data.issues[u.issue_number]} />
             </li>
           ))}
         </ul>
@@ -136,10 +136,11 @@ function All({ data, me }: { data: Data; me: Me }) {
   const stages = useMemo(() => [...new Set(data.queue.map((r) => r.stage ?? ""))].filter(Boolean).sort(), [data]);
   const reviewers = useMemo(() => [...new Set(data.queue.map((r) => r.reviewer))].sort(), [data]);
   const rows = data.queue.filter((r) => {
-    const d = days(r.waiting_since), b = data.issues[r.issue_number]?.latest_build;
+    const d = days(r.waiting_since), it = data.issues[r.issue_number];
+    const worst = (it?.live?.jobs.length ? it.live.worst : it?.latest_build?.worst) ?? "none";
     return (!f.text || `${r.title} ${r.issue_number} ${r.submitter}`.toLowerCase().includes(f.text.toLowerCase()))
       && (!f.stage || r.stage === f.stage) && (!f.band || band(d) === f.band)
-      && (!f.reviewer || r.reviewer === f.reviewer) && (!f.check || (b?.worst ?? "none") === f.check)
+      && (!f.reviewer || r.reviewer === f.reviewer) && (!f.check || worst === f.check)
       && (!f.risk || atRisk(r, me.deadline));
   }).sort((a, b) => a.waiting_since.localeCompare(b.waiting_since));
   return (
@@ -172,7 +173,7 @@ function All({ data, me }: { data: Data; me: Me }) {
                 <td><div className="stack"><Wait d={days(r.waiting_since)} />
                   {atRisk(r, me.deadline) && <span className="tag tag-risk">⚠ At risk</span>}</div></td>
                 <td>{sinceText(r)}</td>
-                <td><Checks build={data.issues[r.issue_number]?.latest_build} /></td>
+                <td><Checks info={data.issues[r.issue_number]} /></td>
                 <td><AiChips /></td>
               </tr>
             ))}
