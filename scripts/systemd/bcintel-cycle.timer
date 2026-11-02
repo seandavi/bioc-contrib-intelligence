@@ -1,8 +1,8 @@
 [Unit]
-Description=Run bcintel tick every 6 hours
+Description=Run bcintel tick every 5 minutes
 
 [Timer]
-OnCalendar=*-*-* 00/6:17:00
+OnCalendar=*:0/5
 Persistent=true
 
 [Install]
