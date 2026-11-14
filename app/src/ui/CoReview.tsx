@@ -8,7 +8,7 @@ import { applyEdits, type Edit, lineDiff } from "./draft";
 import type { Me } from "./lib";
 import { Md } from "./parts";
 
-type Skill = { id: string; label: string; description: string; model?: string };
+type Skill = { id: string; label: string; description: string; when?: string; time?: string; model?: string };
 type Meta = { turn?: string; model?: string; ms?: number; usage?: { inputTokens?: number; outputTokens?: number;
   inputTokenDetails?: { cacheReadTokens?: number } } };
 type Msg = UIMessage<Meta>;
@@ -159,8 +159,11 @@ export function CoReview({ n, me, close }: { n: number; me: Me; close: () => voi
       <div className="cr-skills" role="group" aria-label="Skills">
         {skills === null && <span className="note">Skills unavailable.</span>}
         {skills?.skills.map((s) => (
-          <button key={s.id} type="button" className={`chipbtn${skill === s.id ? " on" : ""}`} title={s.description}
-            aria-pressed={skill === s.id} disabled={busy} onClick={() => runSkill(s)}>{s.label}</button>
+          <span key={s.id} className="tipwrap">
+            <button type="button" className={`chipbtn${skill === s.id ? " on" : ""}`} aria-describedby={`tip-${s.id}`}
+              aria-pressed={skill === s.id} disabled={busy} onClick={() => runSkill(s)}>{s.label}</button>
+            <span role="tooltip" id={`tip-${s.id}`} className="tip"><SkillTip s={s} /></span>
+          </span>
         ))}
         {active && <span className="note">{active.label} mode: your messages use this skill ·{" "}
           <button type="button" className="linkbtn small" onClick={() => setSkill("")}>turn off</button></span>}
@@ -174,7 +177,8 @@ export function CoReview({ n, me, close }: { n: number; me: Me; close: () => voi
               built commit. The co-reviewer can edit the draft below; you decide what gets posted.</p>
             <ul className="cr-cards">
               {skills?.skills.map((s) => (
-                <li key={s.id}><button type="button" disabled={busy} onClick={() => runSkill(s)}><b>{s.label}</b><span>{s.description}</span></button></li>
+                <li key={s.id}><button type="button" disabled={busy} onClick={() => runSkill(s)}><b>{s.label}</b><span>{s.description}</span>
+                  {s.when && <span><i>Use when:</i> {s.when}</span>}</button></li>
               ))}
             </ul>
           </div>
@@ -234,6 +238,16 @@ export function CoReview({ n, me, close }: { n: number; me: Me; close: () => voi
         </p>
       </div>
     </aside>
+  );
+}
+
+function SkillTip({ s }: { s: Skill }) {
+  return (
+    <>
+      <b>{s.label}</b> — {s.description}
+      {s.when && <><br /><i>Use when:</i> {s.when}</>}
+      {(s.time || s.model) && <><br /><span className="muted">{[s.time && `Takes ${s.time}`, s.model].filter(Boolean).join(" · ")}</span></>}
+    </>
   );
 }
 

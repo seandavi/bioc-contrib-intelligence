@@ -134,7 +134,7 @@ app.get("/api/issues/:n{[0-9]+}", async (c) => {
 // ── Co-review agent (#39) ─────────────────────────────────────────────────────
 app.get("/api/skills", (c) => c.json({
   models: MODELS,
-  skills: Object.values(SKILLS).map(({ id, label, description, model }) => ({ id, label, description, model })),
+  skills: Object.values(SKILLS).map(({ id, label, description, when, time, model }) => ({ id, label, description, when, time, model })),
 }));
 
 app.post("/api/issues/:n{[0-9]+}/chat", async (c) => {
