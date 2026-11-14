@@ -9,7 +9,7 @@
     "deploy": "vite build && wrangler deploy",
     "check": "tsc --noEmit",
     "test": "bun test",
-    "secrets": "for s in GITHUB_CLIENT_ID:bioc-reviews-github-client-id GITHUB_CLIENT_SECRET:bioc-reviews-github-client-secret SESSION_SECRET:bioc-reviews-session-secret AI_GATEWAY_TOKEN:cdsci-cloudflare-ai-gateway-token; do gcloud secrets versions access latest --project cdsci-infra --secret ${s#*:} | wrangler secret put ${s%%:*}; done"
+    "secrets": "for s in GITHUB_CLIENT_ID:bioc-reviews-github-client-id GITHUB_CLIENT_SECRET:bioc-reviews-github-client-secret SESSION_SECRET:bioc-reviews-session-secret AI_GATEWAY_TOKEN:cdsci-cloudflare-ai-gateway-token GITHUB_READ_TOKEN:cdsci-github-actions-read-token; do gcloud secrets versions access latest --project cdsci-infra --secret ${s#*:} | wrangler secret put ${s%%:*}; done"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.105",

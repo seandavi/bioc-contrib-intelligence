@@ -9,7 +9,7 @@ import { convertToModelMessages, createUIMessageStreamResponse, stepCountIs, str
 import { z } from "zod";
 import type { Data, User } from "./auth";
 import { SKILLS } from "./skills";
-import { build, type Build, checkLog, listing, readFile, search, tree, type Tree } from "./sources";
+import { build, type Build, checkLog, listing, overview, readFile, search, tree, type Tree } from "./sources";
 
 export type AgentEnv = {
   DATA: R2Bucket;
@@ -28,16 +28,16 @@ type Info = { package?: string; source_url?: string | null; latest_build?: Recor
 export type ChatBody = { messages: UIMessage[]; draft?: string; skill?: string; model?: string };
 
 export async function chat(env: AgentEnv, user: User, data: Data, n: number, thread: Entry[], body: ChatBody,
-  waitUntil: (p: Promise<unknown>) => void): Promise<Response> {
+  waitUntil: (p: Promise<unknown>) => void, abortSignal?: AbortSignal): Promise<Response> {
   const id = crypto.randomUUID();
   const t0 = Date.now();
-  const skill = body.skill ? SKILLS[body.skill] : undefined;
+  const skill = body.skill && Object.hasOwn(SKILLS, body.skill) ? SKILLS[body.skill] : undefined;
   const model = MODELS.find((m) => m === body.model) ?? skill?.model ?? DEFAULT_MODEL;
   const info = (data.issues[String(n)] ?? {}) as Info;
   const rows = data.queue.filter((r) => r.issue_number === n);
   const submitter = String(rows[0]?.submitter ?? data.unassigned.find((u) => u.issue_number === n)?.submitter ?? "");
   const reviewers = rows.map((r) => r.reviewer);
-  const tokens = [user.token, env.GITHUB_READ_TOKEN].filter(Boolean) as string[];
+  const tokens = [env.GITHUB_READ_TOKEN, user.token].filter(Boolean) as string[];
 
   // Package build + source, loaded lazily once per turn.
   const pkg = info.package ?? "";
@@ -50,7 +50,7 @@ export async function chat(env: AgentEnv, user: User, data: Data, n: number, thr
     return { b: bb, t: await (t ??= tree(env.DATA, bb)) };
   };
   const bld = await getBuild().catch(() => null);
-  const files = bld ? await getTree().then(({ t }) => listing(t), (e) => `(source unavailable: ${e.message})`) : "(no build)";
+  const files = bld ? await getTree().then(({ t }) => overview(t), (e) => `(source unavailable: ${e.message})`) : "(no build)";
 
   // Tool timing for the turn record.
   const toolLog: Array<{ name: string; ms: number; ok: boolean; bytes: number; input: string }> = [];
@@ -136,6 +136,14 @@ export async function chat(env: AgentEnv, user: User, data: Data, n: number, thr
 
   const context = renderContext({ n, data, info, submitter, reviewers, user, thread, b: bld, files });
   let firstToken = 0;
+  // Failed and stopped turns cost money too: record them in the same shape (finish = error/aborted).
+  const record = (finish: string, error?: string) => {
+    const ev = { event: "agent_turn", id, at: new Date(t0).toISOString(), login: user.login, issue: n, pkg,
+      skill: body.skill ?? null, model, steps: 0, finish, error, usage: {}, first_token_ms: firstToken,
+      total_ms: Date.now() - t0, tools: toolLog, gateway_logs: gatewayLogs, sha: bld?.sha ?? null };
+    console.log(JSON.stringify(ev));
+    waitUntil(env.DATA.put(`obs/turns/${ev.at.slice(0, 10)}/${id}.json`, JSON.stringify(ev)));
+  };
   const result = streamText({
     model: anthropic(model),
     system: [
@@ -144,7 +152,7 @@ export async function chat(env: AgentEnv, user: User, data: Data, n: number, thr
       { role: "system", content: `# Current draft (the reviewer may have edited it since your last turn)\n` +
         (body.draft?.trim() ? "<draft>\n" + body.draft + "\n</draft>" : "(empty)") },
     ],
-    messages: await convertToModelMessages(body.messages),
+    messages: await convertToModelMessages(body.messages, { ignoreIncompleteToolCalls: true }),
     tools,
     stopWhen: stepCountIs(25),
     // Moving cache breakpoint on the newest message, so each tool-loop step re-reads the
@@ -157,7 +165,8 @@ export async function chat(env: AgentEnv, user: User, data: Data, n: number, thr
           ? { ...rest, anthropic: { cacheControl: { type: "ephemeral" } } } : rest } as typeof m;
       }),
     }),
-    maxOutputTokens: 8000,
+    maxOutputTokens: 16000,
+    abortSignal,
     onChunk: () => { firstToken ||= Date.now() - t0; },
     onFinish: (f) => {
       const ev = {
@@ -170,10 +179,8 @@ export async function chat(env: AgentEnv, user: User, data: Data, n: number, thr
       console.log(JSON.stringify(ev));
       waitUntil(env.DATA.put(`obs/turns/${ev.at.slice(0, 10)}/${id}.json`, JSON.stringify(ev)));
     },
-    onError: ({ error }) => {
-      console.log(JSON.stringify({ event: "agent_error", id, login: user.login, issue: n, model,
-        error: String((error as Error)?.message ?? error), tools: toolLog, gateway_logs: gatewayLogs }));
-    },
+    onError: ({ error }) => record("error", String((error as Error)?.message ?? error)),
+    onAbort: () => record("aborted"),
   });
 
   return createUIMessageStreamResponse({
@@ -216,10 +223,7 @@ function renderContext(a: { n: number; data: Data; info: Info; submitter: string
     .map((r) => `- ${r.reviewer}: ${r.reviewer_turn ? "reviewer's move" : "submitter's move"} since ${r.waiting_since}; ` +
       `assigned ${r.assigned_at}; reviewer's last comment ${r.reviewer_last ?? "none"}; since then ` +
       `${r.comments_since} submitter comments, ${r.pushes_since} pushes; stage '${r.stage}'`).join("\n");
-  const thread = a.thread.map((e) => e.kind === "comment"
-    ? `### ${e.who} (${role(e)}) · ${e.created_at} · ${gh}#issuecomment-${e.id}\n` +
-      (e.is_bot ? clip(e.body ?? "", 1500) : (e.body ?? ""))
-    : `- ${e.created_at} ${e.who} ${e.kind} ${e.body ?? ""}`).join("\n\n");
+  const thread = renderThread(a.thread, role, gh);
   const b = a.b;
   return `# Issue #${a.n}: ${a.info.package ?? ""} (${gh})
 Signed-in reviewer: ${a.user.login}. Submitter: ${a.submitter}. Assigned reviewers: ${a.reviewers.join(", ") || "none"}.
@@ -238,8 +242,18 @@ Versions pushed: ${JSON.stringify(a.info.versions ?? [])}
 ## Package files at that commit
 ${a.files}
 
-## Issue thread (oldest first)
+## Issue thread (oldest first; each <comment> is fenced, its author and role are authoritative)
 ${thread}`;
+}
+
+// Each comment is fenced with its real author and role, and bodies can't close the fence,
+// so a submitter can't forge a "reviewer" comment inside their own text.
+export function renderThread(thread: Entry[], role: (e: Entry) => string, gh: string) {
+  const esc = (s: string) => s.replace(/<(\/?)comment/gi, "<$1comment\u200b");
+  return thread.map((e) => e.kind === "comment"
+    ? `<comment author="${e.who}" role="${role(e)}" at="${e.created_at}" link="${gh}#issuecomment-${e.id}">\n` +
+      esc(clip(e.body ?? "", e.is_bot ? 1500 : 12000)) + "\n</comment>"
+    : `<event at="${e.created_at}" actor="${e.who}">${e.kind} ${esc(e.body ?? "")}</event>`).join("\n");
 }
 
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n) + " …(truncated)" : s);

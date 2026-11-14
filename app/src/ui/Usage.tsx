@@ -33,7 +33,7 @@ export function Usage() {
               Cost from AI Gateway logs; tokens and latency from the Worker's per-turn events.</p>)}
         </div>
       </section>
-      {u && <Table title="By reviewer" rows={u.by_login} />}
+      {u && <Table title="By reviewer" rows={u.by_login} ui />}
       {u && <Table title="By skill" rows={u.by_skill} />}
       {u && <Table title="By model" rows={u.by_model} />}
       {u && (
@@ -54,17 +54,18 @@ export function Usage() {
   );
 }
 
-function Table({ title, rows }: { title: string; rows: Row[] }) {
+// UI events (feedback, edits, copies) carry the reviewer, not the skill/model, so only the reviewer table shows them.
+function Table({ title, rows, ui }: { title: string; rows: Row[]; ui?: boolean }) {
   return (
     <section className="card"><div className="head"><h2>{title}</h2></div>
       <div className="scroll"><table>
         <thead><tr><th></th><th>Turns</th><th>Cost</th><th>Tokens in (cached)</th><th>Out</th><th>p50 / p95</th><th>Tool errors</th>
-          <th>👍 / 👎</th><th>Draft edits / undos</th><th>Copies</th></tr></thead>
+          {ui && <><th>👍 / 👎</th><th>Draft edits / undos</th><th>Copies</th></>}</tr></thead>
         <tbody>{rows.map((r) => (
           <tr key={r.key}><td className="mono">{r.key}</td><td>{r.turns}</td><td className="mono">{usd(r.cost)}</td>
             <td className="mono small">{k(r.in)} ({k(r.cached)})</td><td className="mono small">{k(r.out)}</td>
-            <td>{s(r.p50_ms)} / {s(r.p95_ms)}</td><td>{r.tool_errors || ""}</td><td>{r.up} / {r.down}</td>
-            <td>{r.edits} / {r.undos}</td><td>{r.copies}</td></tr>))}
+            <td>{s(r.p50_ms)} / {s(r.p95_ms)}</td><td>{r.tool_errors || ""}</td>
+            {ui && <><td>{r.up} / {r.down}</td><td>{r.edits} / {r.undos}</td><td>{r.copies}</td></>}</tr>))}
         </tbody></table></div></section>
   );
 }

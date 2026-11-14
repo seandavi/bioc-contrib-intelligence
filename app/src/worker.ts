@@ -1,12 +1,14 @@
 import { type Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import { type AgentEnv, type ChatBody, chat, MODELS } from "./agent";
+import { type AgentEnv, chat, MODELS } from "./agent";
 import { allowed, canSeeIssue, type Data, exchange, fresh, resolveUser, scope, seal, unseal, type User,
   withTokens } from "./auth";
+import { autoSteps, cleanEvent, parseChat } from "./guards";
 import { SKILLS } from "./skills";
 import { rollup, type Turn, type UiEvent } from "./usage";
 
 type Env = AgentEnv & {
+  CHAT_LIMIT?: RateLimit;
   ASSETS: Fetcher;
   REPO: string;
   DEADLINE: string;
@@ -142,16 +144,25 @@ app.post("/api/issues/:n{[0-9]+}/chat", async (c) => {
   if (!data) return c.json({ error: "no_data" }, 503);
   if (!canSeeIssue(data, u, n)) return c.json({ error: "no_access" }, 403);
   const raw = await c.req.text();
-  if (raw.length > 2e6) return c.json({ error: "too_large" }, 413); // ponytail: crude cost guard
+  if (raw.length > 2e6) return c.json({ error: "too_large" }, 413);
+  const body = parseChat(raw);
+  if (!body) return c.json({ error: "bad_request" }, 400);
+  // Cost guards: per-reviewer rate limit, and a cap on automatic client-tool resubmits per user message.
+  if (c.env.CHAT_LIMIT && !(await c.env.CHAT_LIMIT.limit({ key: u.login })).success)
+    return c.json({ error: "rate_limited", message: "Too many co-review requests; wait a minute." }, 429);
+  if (autoSteps(body.messages) > 12) return c.json({ error: "loop_limit", message: "Stopped: too many automatic steps for one message." }, 429);
   const thread = JSON.parse((await snapshot(c.env, `i/${n}.json`)) ?? "[]");
-  return chat(c.env, u, data, n, thread, JSON.parse(raw) as ChatBody, (p) => c.executionCtx.waitUntil(p));
+  return chat(c.env, u, data, n, thread, body, (p) => c.executionCtx.waitUntil(p), c.req.raw.signal);
 });
 
 // Product signals from the UI (#38): skill started, draft edit applied/undone, copy, feedback.
 app.post("/api/events", async (c) => {
   const u = c.get("user");
-  const ev = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!ev || typeof ev.type !== "string") return c.json({ error: "bad_event" }, 400);
+  const data = await loadData(c.env);
+  if (!data || !allowed(data, u)) return c.json({ error: "no_access" }, 403);
+  const raw = await c.req.text();
+  const ev = raw.length < 4096 ? cleanEvent(raw) : null;
+  if (!ev) return c.json({ error: "bad_event" }, 400);
   const rec = { event: "ui", ...ev, login: u.login, at: new Date().toISOString(), id: crypto.randomUUID() };
   console.log(JSON.stringify(rec));
   c.executionCtx.waitUntil(c.env.DATA.put(`obs/ui/${rec.at.slice(0, 10)}/${rec.id}.json`, JSON.stringify(rec)));

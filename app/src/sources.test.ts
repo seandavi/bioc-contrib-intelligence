@@ -1,5 +1,4 @@
 import { expect, test } from "bun:test";
-import { gzipSync } from "bun";
 import { readFile, search, trimLog, untar } from "./sources";
 
 // Build a tiny ustar archive in memory: one text file, one binary, one long name.
@@ -33,7 +32,8 @@ test("untar keeps text, skips binary, handles GNU long names and strips the pref
   expect(readFile(t, b, "R/a.R")).toContain("https://github.com/me/p/blob/abc/R/a.R");
   expect(readFile(t, b, "R/a.R", 2, 2)).toContain("2|   sapply(x, g)");
   expect(search(t, b, "sapply")).toContain("R/a.R:2:");
-  expect(gzipSync).toBeDefined();
+  expect(readFile(t, b, "constructor")).toBe("constructor: no such file.");
+  expect(readFile(t, b, "__proto__")).toBe("__proto__: no such file.");
 });
 
 test("trimLog keeps findings, drops timestamps, ANSI and noise", () => {

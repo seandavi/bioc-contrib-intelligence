@@ -8,7 +8,7 @@ export function Detail({ n, data, me }: { n: number; data: Data; me: Me }) {
   const [issue, setIssue] = useState<{ thread: Entry[]; review: string | null } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [showBots, setShowBots] = useState(false);
-  // Co-review sidebar: open by default for the issue's own reviewer; remembered per browser.
+  // Co-review sidebar: open by default; open/closed is remembered per browser.
   const [ai, setAiState] = useState(() => localStorage.getItem("cr:open") !== "0");
   const setAi = (v: boolean) => { setAiState(v); localStorage.setItem("cr:open", v ? "1" : "0"); if (v) track("co_review_open", { issue: n }); };
   useEffect(() => {
@@ -156,7 +156,7 @@ export function Detail({ n, data, me }: { n: number; data: Data; me: Me }) {
         </aside>
       </div>
     </div>
-    {ai && <CoReview n={n} me={me} close={() => setAi(false)} />}
+    {ai && <CoReview key={n} n={n} me={me} close={() => setAi(false)} />}
     </div>
   );
 }

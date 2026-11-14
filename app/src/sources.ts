@@ -5,7 +5,7 @@
 
 const UA = { "User-Agent": "bioc-reviews" };
 const MAX_FILE = 512 * 1024; // larger files are listed, not stored
-const MAX_TAR = 60 * 1024 * 1024;
+const MAX_TAR = 24 * 1024 * 1024; // decompressed; Workers have 128 MB
 
 export type Build = {
   pkg: string;
@@ -16,7 +16,7 @@ export type Build = {
   jobs: Array<{ platform: string; job: number; status: string; r: string }>;
   bioccheck: { error: number; warning: number; note: number } | null;
 };
-export type Tree = { files: Record<string, string>; skipped: Array<{ path: string; size: number }> };
+export type Tree = { files: Record<string, string>; skipped: Array<{ path: string; size: number }>; error?: string };
 
 const cached = async <T>(bucket: R2Bucket, key: string, make: () => Promise<T>): Promise<T> => {
   const hit = await bucket.get(key);
@@ -34,7 +34,8 @@ export async function build(pkg: string, sourceUrl: string | null, token: string
   if (!r.ok) return null;
   const d = (await r.json()) as Record<string, any>;
   const staging = ghRepo(d.RemoteUrl) ?? `BiocStaging/${pkg}`;
-  const sha = d.RemoteSha as string;
+  const sha = String(d.RemoteSha ?? "");
+  if (!/^[0-9a-f]{40}$/.test(sha)) return null;
   let link = staging;
   const src = ghRepo(sourceUrl);
   if (src && src.toLowerCase() !== staging.toLowerCase()) {
@@ -53,22 +54,42 @@ export async function build(pkg: string, sourceUrl: string | null, token: string
 export const permalink = (b: Build, path: string, from?: number, to?: number) =>
   `https://github.com/${b.link}/blob/${b.sha}/${path}` + (from ? `#L${from}` + (to && to !== from ? `-L${to}` : "") : "");
 
-// Source tree at the built commit. Text files only, each ≤ MAX_FILE.
-export function tree(bucket: R2Bucket, b: Build): Promise<Tree> {
-  return cached(bucket, `src/${b.staging}@${b.sha}.json`, async () => {
-    const r = await fetch(`https://codeload.github.com/${b.staging}/tar.gz/${b.sha}`, { headers: UA });
-    if (!r.ok || !r.body) throw new Error(`tarball ${r.status}`);
-    const tar = new Uint8Array(await new Response(r.body.pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
-    if (tar.length > MAX_TAR) throw new Error("source too large");
-    return untar(tar);
+// Source tree at the built commit. Text files only, each ≤ MAX_FILE. A failure is cached
+// too (same key, with `error`), so a too-large package isn't re-downloaded every turn.
+export async function tree(bucket: R2Bucket, b: Build): Promise<Tree> {
+  const t = await cached(bucket, `src/${b.staging}@${b.sha}.json`, async (): Promise<Tree> => {
+    try {
+      const r = await fetch(`https://codeload.github.com/${b.staging}/tar.gz/${b.sha}`, { headers: UA });
+      if (!r.ok || !r.body) throw new Error(`tarball download failed (${r.status})`);
+      return untar(await capped(r.body.pipeThrough(new DecompressionStream("gzip")), MAX_TAR));
+    } catch (e) {
+      return { files: {}, skipped: [], error: (e as Error).message };
+    }
   });
+  if (t.error) throw new Error(`source unavailable: ${t.error}`);
+  return t;
+}
+
+// Read a stream into memory, aborting past `max` bytes (zip bombs, huge data packages).
+async function capped(stream: ReadableStream<Uint8Array>, max: number) {
+  const parts: Uint8Array[] = [];
+  let n = 0;
+  for await (const p of stream as unknown as AsyncIterable<Uint8Array>) {
+    n += p.length;
+    if (n > max) throw new Error(`source larger than ${max / 2 ** 20} MB unpacked`);
+    parts.push(p);
+  }
+  const out = new Uint8Array(n);
+  let o = 0;
+  for (const p of parts) { out.set(p, o); o += p.length; }
+  return out;
 }
 
 // Minimal ustar reader: regular files, GNU long names, pax path records.
 export function untar(tar: Uint8Array): Tree {
   const dec = new TextDecoder();
   const str = (o: number, n: number) => dec.decode(tar.subarray(o, o + n)).replace(/\0.*$/s, "");
-  const files: Record<string, string> = {};
+  const files: Record<string, string> = Object.create(null);
   const skipped: Tree["skipped"] = [];
   let long: string | null = null;
   for (let o = 0; o + 512 <= tar.length;) {
@@ -92,7 +113,7 @@ export function untar(tar: Uint8Array): Tree {
 }
 
 export function readFile(t: Tree, b: Build, path: string, from = 1, to?: number) {
-  const text = t.files[path];
+  const text = Object.hasOwn(t.files, path) ? t.files[path] : undefined;
   if (text === undefined)
     return t.skipped.some((s) => s.path === path) ? `${path}: binary or larger than ${MAX_FILE} bytes; not readable.` : `${path}: no such file.`;
   const lines = text.split("\n");
@@ -104,17 +125,29 @@ export function readFile(t: Tree, b: Build, path: string, from = 1, to?: number)
 }
 
 export function search(t: Tree, b: Build, pattern: string, prefix = "") {
+  if (pattern.length > 200) return "Pattern too long (max 200 characters).";
   let re: RegExp;
   try { re = new RegExp(pattern, "i"); } catch (e) { return `Bad regex: ${(e as Error).message}`; }
   const out: string[] = [];
-  for (const [path, text] of Object.entries(t.files)) {
+  // ponytail: lines capped at 1000 chars and an early stop bound regex cost; no true backtracking guard.
+  scan: for (const [path, text] of Object.entries(t.files)) {
     if (!path.startsWith(prefix)) continue;
-    text.split("\n").forEach((l, i) => {
-      if (out.length < 150 && re.test(l)) out.push(`${path}:${i + 1}: ${l.trim().slice(0, 200)}`);
-    });
+    const lines = text.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      if (re.test(lines[i].slice(0, 1000))) out.push(`${path}:${i + 1}: ${lines[i].trim().slice(0, 200)}`);
+      if (out.length >= 150) break scan;
+    }
   }
   return out.length ? `${out.length}${out.length === 150 ? "+ (truncated)" : ""} matches; permalink: ${permalink(b, "<path>", 1).replace("#L1", "#L<line>")}\n${out.join("\n")}`
     : `No matches for /${pattern}/ under '${prefix || "/"}'.`;
+}
+
+// For the prompt: the package shape without thousands of data files.
+export function overview(t: Tree) {
+  const all = Object.keys(t.files).concat(t.skipped.map((s) => s.path)).sort();
+  const key = all.filter((p) => !p.includes("/") || /^(R|man|vignettes|tests|src)\//.test(p));
+  const shown = key.slice(0, 300);
+  return shown.join("\n") + `\n(${all.length} files in total; ${all.length - shown.length} more under inst/, data/ etc. — use list_files)`;
 }
 
 export function listing(t: Tree, prefix = "") {
