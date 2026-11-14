@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { api, atRisk, band, type Check, type Data, days, type Entry, glyph, type Me, short } from "./lib";
-import { AXES, AiChips, Checks, Differs, Md, Wait } from "./parts";
-
-const AI_FOOTER = (login: string) =>
-  `\n\n---\n_Drafted with AI assistance in Bioconductor Reviews and edited by @${login}._`;
+import { CoReview, track } from "./CoReview";
+import { Checks, Differs, Md, Wait } from "./parts";
 
 // Review detail (spec §5.3, §7).
 export function Detail({ n, data, me }: { n: number; data: Data; me: Me }) {
   const [issue, setIssue] = useState<{ thread: Entry[]; review: string | null } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [showBots, setShowBots] = useState(false);
-  const [ai, setAi] = useState(false);
+  // Co-review sidebar: open by default for the issue's own reviewer; remembered per browser.
+  const [ai, setAiState] = useState(() => localStorage.getItem("cr:open") !== "0");
+  const setAi = (v: boolean) => { setAiState(v); localStorage.setItem("cr:open", v ? "1" : "0"); if (v) track("co_review_open", { issue: n }); };
   useEffect(() => {
     setIssue(null); setErr(null);
     api<{ thread: Entry[]; review: string | null }>(`/api/issues/${n}`).then(setIssue, (e) => setErr(e.message));
@@ -32,7 +32,8 @@ export function Detail({ n, data, me }: { n: number; data: Data; me: Me }) {
   const d = mine ? days(mine.waiting_since) : days(un!.created_at);
 
   return (
-    <>
+    <div className={ai ? "cr-layout" : undefined}>
+    <div className="cr-page">
       <div><a href="#/">← Back</a></div>
       <section className="card">
         <div className="head" style={{ alignItems: "flex-start" }}>
@@ -72,12 +73,10 @@ export function Detail({ n, data, me }: { n: number; data: Data; me: Me }) {
           </div>
         )}
         <div className="filters">
-          <button className="btn primary" type="button" onClick={() => setAi(true)}>AI review</button>
+          {!ai && <button className="btn primary" type="button" onClick={() => setAi(true)}>Co-review</button>}
           <a className="btn" href={`${gh}#new_comment_field`} target="_blank" rel="noreferrer">Comment on GitHub ↗</a>
         </div>
       </section>
-
-      {ai && issue && <AiPanel n={n} review={issue.review} me={me} close={() => setAi(false)} />}
 
       <div className="split">
         <div className="main">
@@ -156,7 +155,9 @@ export function Detail({ n, data, me }: { n: number; data: Data; me: Me }) {
           </section>
         </aside>
       </div>
-    </>
+    </div>
+    {ai && <CoReview n={n} me={me} close={() => setAi(false)} />}
+    </div>
   );
 }
 
@@ -198,40 +199,5 @@ function Timeline({ thread, submitter, reviewers, showBots, gh }:
         ))}
       </ol>
     </>
-  );
-}
-
-// AI review results editor (spec §7). ponytail: the body is the pipeline's stub
-// (i/<n>.review.md) until a review engine is chosen; Post arrives with #8.
-function AiPanel({ n, review, me, close }: { n: number; review: string | null; me: Me; close: () => void }) {
-  const [text, setText] = useState(review ?? "");
-  const [tab, setTab] = useState<"edit" | "preview">("edit");
-  const [copied, setCopied] = useState(false);
-  const full = text + AI_FOOTER(me.login);
-  return (
-    <section className="card" aria-label="AI review">
-      <div className="head">
-        <h2>AI review · #{n}</h2>
-        <div className="checks"><AiChips /><button className="btn" type="button" onClick={close}>Close</button></div>
-      </div>
-      <div className="body">
-        <p className="note"><b>Advisory.</b> Only you and admins can see this. Check each point against the package
-          before posting; nothing goes to GitHub until you post it.</p>
-        <p className="note">Axes: {AXES.map(([k, name]) => `${k} ${name}`).join(" · ")}. No review engine is connected yet.</p>
-        <div className="filters" style={{ padding: "8px 0", border: 0 }}>
-          <button className={`btn ${tab === "edit" ? "primary" : ""}`} type="button" onClick={() => setTab("edit")}>Edit</button>
-          <button className={`btn ${tab === "preview" ? "primary" : ""}`} type="button" onClick={() => setTab("preview")}>Preview</button>
-        </div>
-        {tab === "edit"
-          ? <textarea className="editor" aria-label="Review markdown" value={text} onChange={(e) => setText(e.target.value)} />
-          : <Md text={full} />}
-        <p className="note">Added to every post · can’t be edited: <i>Drafted with AI assistance in Bioconductor Reviews and edited by @{me.login}.</i></p>
-        <div className="filters" style={{ padding: "8px 0", border: 0 }}>
-          <button className="btn" type="button" onClick={() => navigator.clipboard.writeText(full).then(() => setCopied(true))}>
-            {copied ? "Copied" : "Copy markdown"}</button>
-          <button className="btn primary" type="button" disabled title="Posting from the app comes next (#8)">Post to #{n}…</button>
-        </div>
-      </div>
-    </section>
   );
 }

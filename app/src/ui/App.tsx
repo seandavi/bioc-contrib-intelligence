@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Preview } from "./CoReview";
 import { Detail } from "./Detail";
 import { ago, api, type Data, type Me, short } from "./lib";
 import { Overview } from "./Overview";
@@ -42,7 +43,8 @@ export function App() {
   if (!data) return <Center><p className="muted">Loading…</p></Center>;
 
   let page, nav = "queue";
-  const m = route.match(/^\/(i|r)\/([^/]+)/);
+  const m = route.match(/^\/(i|r|preview)\/([^/]+)/);
+  if (m?.[1] === "preview") return <main><Preview n={Number(m[2])} me={me} /></main>;
   if (m?.[1] === "i") page = <Detail n={Number(m[2])} data={data} me={me} />;
   else if (m?.[1] === "r" && me.admin) { page = <Queue data={data} me={me} login={decodeURIComponent(m[2])} />; nav = ""; }
   else if (route === "/queue" || !me.admin) page = <Queue data={data} me={me} login={me.login} />;
