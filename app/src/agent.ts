@@ -147,6 +147,16 @@ export async function chat(env: AgentEnv, user: User, data: Data, n: number, thr
     messages: await convertToModelMessages(body.messages),
     tools,
     stopWhen: stepCountIs(25),
+    // Moving cache breakpoint on the newest message, so each tool-loop step re-reads the
+    // previous steps from cache. prepareStep's messages persist, so clear older marks
+    // (Anthropic allows 4 breakpoints; the system context holds one).
+    prepareStep: ({ messages }) => ({
+      messages: messages.map((m, i) => {
+        const { anthropic: _, ...rest } = (m.providerOptions ?? {}) as Record<string, unknown>;
+        return { ...m, providerOptions: i === messages.length - 1
+          ? { ...rest, anthropic: { cacheControl: { type: "ephemeral" } } } : rest } as typeof m;
+      }),
+    }),
     maxOutputTokens: 8000,
     onChunk: () => { firstToken ||= Date.now() - t0; },
     onFinish: (f) => {

@@ -4,6 +4,7 @@ import { type AgentEnv, type ChatBody, chat, MODELS } from "./agent";
 import { allowed, canSeeIssue, type Data, exchange, fresh, resolveUser, scope, seal, unseal, type User,
   withTokens } from "./auth";
 import { SKILLS } from "./skills";
+import { rollup, type Turn, type UiEvent } from "./usage";
 
 type Env = AgentEnv & {
   ASSETS: Fetcher;
@@ -156,6 +157,56 @@ app.post("/api/events", async (c) => {
   c.executionCtx.waitUntil(c.env.DATA.put(`obs/ui/${rec.at.slice(0, 10)}/${rec.id}.json`, JSON.stringify(rec)));
   return c.json({ ok: true });
 });
+
+// Admin usage view (#38): last N days of turns + UI events from R2, $ from gateway logs.
+app.get("/api/usage", async (c) => {
+  if (!c.get("user").admin) return c.json({ error: "admin_only" }, 403);
+  const days = Math.min(Number(c.req.query("days") ?? 7) || 7, 31);
+  const since = new Date(Date.now() - days * 864e5);
+  const read = async <T>(prefix: string) => {
+    const keys: string[] = [];
+    for (let d = 0; d <= days; d++) {
+      const day = new Date(Date.now() - d * 864e5).toISOString().slice(0, 10);
+      const l = await c.env.DATA.list({ prefix: `${prefix}/${day}/`, limit: 1000 });
+      keys.push(...l.objects.map((o) => o.key));
+    }
+    // ponytail: one R2 get per event, capped; move to Analytics Engine when volume outgrows it.
+    const objs = await Promise.all(keys.slice(0, 600).map((k) => c.env.DATA.get(k).then((o) => o?.json<T>())));
+    return { items: objs.filter(Boolean) as T[], truncated: keys.length > 600 };
+  };
+  const [turns, events, cost] = await Promise.all([read<Turn>("obs/turns"), read<UiEvent>("obs/ui"), gatewayCost(c.env, since)]);
+  const t = turns.items;
+  return c.json({
+    days, turns: t.length, truncated: turns.truncated || events.truncated, cost_complete: cost.complete,
+    total_cost: rollup(t, [], cost.map, "model").reduce((s, r) => s + r.cost, 0),
+    by_login: rollup(t, events.items, cost.map, "login"),
+    by_skill: rollup(t, events.items, cost.map, "skill"),
+    by_model: rollup(t, [], cost.map, "model"),
+    recent: t.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 50).map((x) => ({
+      at: x.at, login: x.login, issue: x.issue, skill: x.skill, model: x.model, steps: x.steps, finish: x.finish,
+      ms: x.total_ms, in: x.usage.inputTokens, out: x.usage.outputTokens,
+      cost: x.gateway_logs.reduce((a, id) => a + (cost.map.get(id) ?? 0), 0),
+      tool_errors: x.tools.filter((y) => !y.ok).length,
+    })),
+    feedback: events.items.filter((e) => e.type === "feedback").slice(-50),
+  });
+});
+
+// Gateway log id → USD, paging back to `since` (max 40 pages of 50).
+async function gatewayCost(env: Env, since: Date) {
+  const map = new Map<string, number>();
+  const base = env.AI_GATEWAY_URL.replace("https://gateway.ai.cloudflare.com/v1/", "https://api.cloudflare.com/client/v4/accounts/")
+    .replace(/\/([^/]+)$/, "/ai-gateway/gateways/$1/logs");
+  for (let page = 1; page <= 40; page++) {
+    const r = await fetch(`${base}?per_page=50&page=${page}&order_by=created_at&order_by_direction=desc`,
+      { headers: { Authorization: `Bearer ${env.AI_GATEWAY_TOKEN}` } });
+    if (!r.ok) return { map, complete: false };
+    const logs = ((await r.json()) as { result?: Array<{ id: string; cost?: number; created_at: string }> }).result ?? [];
+    for (const l of logs) map.set(l.id, l.cost ?? 0);
+    if (logs.length < 50 || new Date(logs[logs.length - 1].created_at) < since) return { map, complete: true };
+  }
+  return { map, complete: false };
+}
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 
