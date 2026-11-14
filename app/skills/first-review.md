@@ -2,6 +2,8 @@
 label: First review
 description: A full first review against the Bioconductor package guidelines, with code citations.
 model: claude-opus-5-5
+when: You haven't reviewed this package yet and want a full first draft to edit (uses the strongest model).
+time: ~1 min
 ---
 Draft a full first review.
 

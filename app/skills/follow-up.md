@@ -1,6 +1,8 @@
 ---
 label: Follow-up
 description: What changed since your last review — resolved, partly resolved, still open.
+when: The submitter replied or pushed a new version since your last review.
+time: ~1–2 min
 ---
 Run a follow-up check for the reviewer.
 

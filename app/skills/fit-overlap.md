@@ -1,6 +1,8 @@
 ---
 label: Fit & overlap
 description: Is this a Bioconductor package (vs CRAN)? Which existing packages overlap?
+when: You're unsure the package belongs in Bioconductor, or suspect it duplicates an existing package.
+time: ~30 s
 ---
 Assess fit and overlap.
 

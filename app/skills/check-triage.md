@@ -1,6 +1,8 @@
 ---
 label: Check triage
 description: Explain the current BiocCheck / R CMD check findings and whether justifications hold.
+when: Checks show errors, warnings or notes and you want to know which must be fixed before acceptance.
+time: ~10–30 s
 ---
 Triage the current check results.
 
