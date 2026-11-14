@@ -11,13 +11,21 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*", "/auth/*", "/mcp"]
   },
+  // Skills are markdown bundled as text (src/skills.ts).
+  "rules": [{ "type": "Text", "globs": ["**/*.md"], "fallthrough": true }],
+  // Workers Logs + traces for the co-review agent (#38); full sampling while experimental.
+  "observability": { "enabled": true, "head_sampling_rate": 1, "traces": { "enabled": true } },
+  // Per-reviewer limit on co-review requests (each tool-loop resubmit counts).
+  "ratelimits": [{ "name": "CHAT_LIMIT", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } }],
   // remote: `wrangler dev` reads the real bucket too.
   "r2_buckets": [{ "binding": "DATA", "bucket_name": "data-bioc-reviews", "remote": true }],
   "vars": {
     "REPO": "Bioconductor/BiocContributions",
     // ponytail: one release deadline, edited by redeploy (decision in #12).
     "DEADLINE": "2026-11-18",
-    "DEADLINE_LABEL": "Bioconductor 3.24 manifest"
+    "DEADLINE_LABEL": "Bioconductor 3.24 manifest",
+    "AI_GATEWAY_URL": "https://gateway.ai.cloudflare.com/v1/55bf7202fe14474e57a300f56a652f64/bioc-reviews"
   }
-  // Secrets (wrangler secret put): GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, SESSION_SECRET.
+  // Secrets (wrangler secret put): GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, SESSION_SECRET,
+  // AI_GATEWAY_TOKEN (cdsci-cloudflare-ai-gateway-token), optional GITHUB_READ_TOKEN.
 }

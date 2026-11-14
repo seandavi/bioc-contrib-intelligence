@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { Preview } from "./CoReview";
 import { Detail } from "./Detail";
 import { ago, api, type Data, type Me, short } from "./lib";
 import { Overview } from "./Overview";
 import { Queue } from "./Queue";
+import { Usage } from "./Usage";
 
 // The #/route as a path, so GA4 reports /i/170 rather than one page for everything.
 const pageView = () => (window as unknown as { gtag?: (...a: unknown[]) => void }).gtag?.("event", "page_view",
@@ -42,8 +44,10 @@ export function App() {
   if (!data) return <Center><p className="muted">Loading…</p></Center>;
 
   let page, nav = "queue";
-  const m = route.match(/^\/(i|r)\/([^/]+)/);
-  if (m?.[1] === "i") page = <Detail n={Number(m[2])} data={data} me={me} />;
+  const m = route.match(/^\/(i|r|preview)\/([^/]+)/);
+  if (m?.[1] === "preview") return <main><Preview n={Number(m[2])} me={me} /></main>;
+  if (route === "/usage" && me.admin) { page = <Usage />; nav = "usage"; }
+  else if (m?.[1] === "i") page = <Detail n={Number(m[2])} data={data} me={me} />;
   else if (m?.[1] === "r" && me.admin) { page = <Queue data={data} me={me} login={decodeURIComponent(m[2])} />; nav = ""; }
   else if (route === "/queue" || !me.admin) page = <Queue data={data} me={me} login={me.login} />;
   else { page = <Overview data={data} me={me} />; nav = "overview"; }
@@ -56,6 +60,7 @@ export function App() {
         <nav aria-label="Main">
           {me.admin && <a href="#/" aria-current={nav === "overview" ? "page" : undefined}>Overview</a>}
           <a href={me.admin ? "#/queue" : "#/"} aria-current={nav === "queue" ? "page" : undefined}>My queue</a>
+          {me.admin && <a href="#/usage" aria-current={nav === "usage" ? "page" : undefined}>Co-review usage</a>}
         </nav>
         <div className="right">
           <span title={data.generated_at}>Data as of {short(data.generated_at)}, {data.generated_at.slice(11, 16)} UTC · {ago(data.generated_at)} · refreshes every 5 min</span>
