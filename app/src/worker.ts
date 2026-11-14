@@ -1,11 +1,12 @@
 import { type Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import { type AgentEnv, type ChatBody, chat, MODELS } from "./agent";
 import { allowed, canSeeIssue, type Data, exchange, fresh, resolveUser, scope, seal, unseal, type User,
   withTokens } from "./auth";
+import { SKILLS } from "./skills";
 
-type Env = {
+type Env = AgentEnv & {
   ASSETS: Fetcher;
-  DATA: R2Bucket;
   REPO: string;
   DEADLINE: string;
   DEADLINE_LABEL: string;
@@ -125,6 +126,35 @@ app.get("/api/issues/:n{[0-9]+}", async (c) => {
   const thread = await snapshot(c.env, `i/${n}.json`);
   if (!thread) return c.json({ error: "not_found" }, 404);
   return c.json({ thread: JSON.parse(thread), review: await snapshot(c.env, `i/${n}.review.md`) });
+});
+
+// ── Co-review agent (#39) ─────────────────────────────────────────────────────
+app.get("/api/skills", (c) => c.json({
+  models: MODELS,
+  skills: Object.values(SKILLS).map(({ id, label, description, model }) => ({ id, label, description, model })),
+}));
+
+app.post("/api/issues/:n{[0-9]+}/chat", async (c) => {
+  const u = c.get("user");
+  const n = Number(c.req.param("n"));
+  const data = await loadData(c.env);
+  if (!data) return c.json({ error: "no_data" }, 503);
+  if (!canSeeIssue(data, u, n)) return c.json({ error: "no_access" }, 403);
+  const raw = await c.req.text();
+  if (raw.length > 2e6) return c.json({ error: "too_large" }, 413); // ponytail: crude cost guard
+  const thread = JSON.parse((await snapshot(c.env, `i/${n}.json`)) ?? "[]");
+  return chat(c.env, u, data, n, thread, JSON.parse(raw) as ChatBody, (p) => c.executionCtx.waitUntil(p));
+});
+
+// Product signals from the UI (#38): skill started, draft edit applied/undone, copy, feedback.
+app.post("/api/events", async (c) => {
+  const u = c.get("user");
+  const ev = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!ev || typeof ev.type !== "string") return c.json({ error: "bad_event" }, 400);
+  const rec = { event: "ui", ...ev, login: u.login, at: new Date().toISOString(), id: crypto.randomUUID() };
+  console.log(JSON.stringify(rec));
+  c.executionCtx.waitUntil(c.env.DATA.put(`obs/ui/${rec.at.slice(0, 10)}/${rec.id}.json`, JSON.stringify(rec)));
+  return c.json({ ok: true });
 });
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
