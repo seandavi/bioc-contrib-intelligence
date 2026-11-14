@@ -8,7 +8,7 @@ Review-queue intelligence for Bioconductor package submissions: who owes the
 next move on each review, how long it has been waiting, and what changed since
 the last comment.
 
-**App:** <https://bioc-reviews.seandavi.workers.dev> (sign in with GitHub; for
+**App:** <https://reviewer.bioconductor.org> (sign in with GitHub; for
 reviewers with open assignments on
 [Bioconductor/BiocContributions](https://github.com/Bioconductor/BiocContributions)
 and its triage team).

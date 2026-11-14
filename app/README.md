@@ -30,7 +30,8 @@ renewed with the refresh token kept in the sealed session cookie. Writes only
 work where the app is installed (Bioconductor/BiocContributions); read-only
 sign-in works without the installation.
 
-App settings: callback `https://bioc-reviews.seandavi.workers.dev/auth/callback`,
+App settings: callbacks `https://reviewer.bioconductor.org/auth/callback` and
+`https://bioc-reviews.seandavi.workers.dev/auth/callback` (the redirect uses the host signed in from),
 "Expire user authorization tokens" on, webhook off (#11 adds it).
 
 Secrets live in GCP Secret Manager (`cdsci-infra`) and are copied to the Worker:

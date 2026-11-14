@@ -5,6 +5,8 @@
   "name": "bioc-reviews",
   "main": "src/worker.ts",
   "compatibility_date": "2026-11-01",
+  // Public host; bioc-reviews.seandavi.workers.dev keeps working.
+  "routes": [{ "pattern": "reviewer.bioconductor.org", "custom_domain": true }],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

@@ -14,7 +14,7 @@ results feed the co-review pane in the reviewer app. Everything here comes from 
 
 ## The reviewer app and the co-review pane
 
-The reviewer app (<https://bioc-reviews.seandavi.workers.dev>) shows each Bioconductor reviewer
+The reviewer app (<https://reviewer.bioconductor.org>) shows each Bioconductor reviewer
 their open assignments: whose move it is, how long it has been waiting, what changed since their
 last comment, and the current r-universe check results. Each submission's detail page now has a
 co-review pane on the right. At the top is a chat with an agent; at the bottom is a draft of the
