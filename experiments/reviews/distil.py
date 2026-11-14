@@ -444,9 +444,13 @@ def structure_report(work, ex, rng):
 
 
 EXAMPLES = {  # (repo, issue_number): why it was picked; chosen by reading candidates
-    ("Bioconductor/BiocContributions", 56): "New tracker; checkbox list grouped by file, 13 categories, one follow-up.",
-    ("Bioconductor/BiocContributions", 75): "New tracker; follows the reviewer checklist template headings and quotes BiocCheck output.",
-    ("Bioconductor/Contributions", 762): "Legacy tracker; leads with fit/interoperability, then build report and file sections; two follow-ups.",
+    ("Bioconductor/BiocContributions", 56):
+        "New tracker; checkbox list grouped by file, 13 categories, one follow-up.",
+    ("Bioconductor/BiocContributions", 75):
+        "New tracker; follows the reviewer checklist template headings and quotes BiocCheck output.",
+    ("Bioconductor/Contributions", 762):
+        "Legacy tracker; leads with fit/interoperability, then build report and file sections; "
+        "two follow-ups.",
 }
 
 
