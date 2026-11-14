@@ -447,7 +447,7 @@ EXAMPLES = {  # (repo, issue_number): why it was picked; chosen by reading candi
     ("Bioconductor/BiocContributions", 56):
         "New tracker; checkbox list grouped by file, 13 categories, one follow-up.",
     ("Bioconductor/BiocContributions", 75):
-        "New tracker; follows the reviewer checklist template headings and quotes BiocCheck output.",
+        "New tracker; uses the reviewer checklist template headings, quotes BiocCheck output.",
     ("Bioconductor/Contributions", 762):
         "Legacy tracker; leads with fit/interoperability, then build report and file sections; "
         "two follow-ups.",
