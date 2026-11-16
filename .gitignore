@@ -25,3 +25,4 @@ bot_out/
 
 site/
 .playwright-mcp/
+._*

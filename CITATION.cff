@@ -9,7 +9,7 @@ authors:
     family-names: Davis
     email: seandavi@gmail.com
 repository-code: https://github.com/seandavi/bioc-contrib-intelligence
-url: https://bioc-reviews.seandavi.workers.dev
+url: https://reviewer.bioconductor.org
 abstract: >-
   Derives the current state of each Bioconductor package submission (whose
   move it is, how long it has waited, current r-universe check results) from
