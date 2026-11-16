@@ -69,8 +69,9 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
 });
 
 // `agent`: model output can't load images (an injected ![](https://x/?d=…) would leak data).
-export function Md({ text, agent }: { text: string; agent?: boolean }) {
-  const html = DOMPurify.sanitize(marked.parse(text, { async: false, gfm: true, breaks: true }) as string,
+// prose: hard-wrapped markdown (the guide); comments keep GitHub's line breaks.
+export function Md({ text, agent, prose }: { text: string; agent?: boolean; prose?: boolean }) {
+  const html = DOMPurify.sanitize(marked.parse(text, { async: false, gfm: true, breaks: !prose }) as string,
     agent ? { FORBID_TAGS: ["img"] } : {});
   return <div className="md" dangerouslySetInnerHTML={{ __html: html }} />;
 }
