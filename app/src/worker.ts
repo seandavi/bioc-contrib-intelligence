@@ -5,6 +5,7 @@ import { allowed, canSeeIssue, type Data, exchange, fresh, resolveUser, scope, s
   withTokens } from "./auth";
 import { autoSteps, cleanEvent, parseChat } from "./guards";
 import { SKILLS } from "./skills";
+import { summary } from "./summary";
 import { rollup, type Turn, type UiEvent } from "./usage";
 
 type Env = AgentEnv & {
@@ -55,6 +56,9 @@ app.get("/auth/callback", async (c) => {
   const user = u && withTokens(u, t);
   if (!user) return c.text("Sign-in failed: GitHub didn't return a user", 502);
   await setSession(c, user);
+  // Who signs in, next to the co-review events (obs/ui); #/usage counts them by login.
+  const rec = { event: "ui", type: "sign_in", login: user.login, admin: user.admin, at: new Date().toISOString(), id: crypto.randomUUID() };
+  c.executionCtx.waitUntil(c.env.DATA.put(`obs/ui/${rec.at.slice(0, 10)}/${rec.id}.json`, JSON.stringify(rec)));
   return c.redirect("/");
 });
 
@@ -83,6 +87,14 @@ async function bearerUser(token: string, env: Env): Promise<User | null> {
   }
   return u;
 }
+
+// Public: tracker-wide counts for the landing page. No logins or package names
+// (per-reviewer numbers are sensitive, spec §9.3). Registered before the auth middleware.
+app.get("/api/public/summary", async (c) => {
+  const data = await loadData(c.env);
+  if (!data) return c.json({ error: "no_data" }, 503);
+  return c.json({ ...summary(data as unknown as Parameters<typeof summary>[0], Date.now()), deadline: c.env.DEADLINE, deadline_label: c.env.DEADLINE_LABEL });
+});
 
 app.use("/api/*", async (c, next) => {
   const env = c.env;

@@ -207,3 +207,11 @@ main:has(.cr-layout) { max-width: none; }
 .tip .muted { color: var(--bar-muted); }
 .tipwrap:hover .tip, .tipwrap:focus-within .tip { visibility: visible; opacity: 1; }
 .tipwrap:nth-last-child(-n+2) .tip { left: auto; right: 0; }
+
+/* Guide: long-form prose, so a readable measure and larger type than comments. */
+.guide .md { font-size: 14px; line-height: 1.6; max-width: 76ch; }
+.guide .md h2 { margin: 28px 0 8px; font-size: 17px; }
+.guide .md h2:first-child { margin-top: 4px; }
+.guide .md h3 { margin: 18px 0 6px; font-size: 15px; }
+.guide .md p, .guide .md li { margin: 6px 0; }
+.bar .btn.primary { min-height: 30px; }
