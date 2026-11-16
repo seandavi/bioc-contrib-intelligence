@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { atRisk, band, families, type QueueRow } from "./lib";
+import { atRisk, band, deadlineAhead, families, type QueueRow } from "./lib";
 
 test("wait bands", () => {
   expect([0, 14, 15, 28, 29, 60, 61].map(band)).toEqual(
@@ -25,4 +25,11 @@ test("at risk: reviewer's move, silent or > 14 d, deadline < 30 d", () => {
   expect(atRisk(row({ reviewer_turn: false }), "2026-11-18", now)).toBe(false);
   expect(atRisk(row({}), "2027-01-18", now)).toBe(false); // deadline far
   expect(atRisk(row({}), "2026-10-01", now)).toBe(false); // deadline passed
+});
+
+test("deadlineAhead: future yes; past or unset no (hides deadline UI)", () => {
+  const now = Date.parse("2026-11-20T00:00:00Z");
+  expect(deadlineAhead("2026-11-25", now)).toBe(true);
+  expect(deadlineAhead("2026-11-18", now)).toBe(false);
+  expect(deadlineAhead("", now)).toBe(false);
 });

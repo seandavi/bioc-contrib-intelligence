@@ -35,6 +35,11 @@ export const band = (d: number): Band => (d <= 14 ? "fresh" : d <= 28 ? "due" : 
 
 // At risk (#12 default): reviewer's move, and either no reviewer comment yet or
 // waiting > 14 d, with the release deadline under 30 d away.
+// A deadline still ahead. DEADLINE="" (none set) or a past date is false, which
+// hides every deadline element: banner, at-risk tags, cards and group.
+export const deadlineAhead = (deadline: string, now = Date.now()) =>
+  new Date(deadline).getTime() - now >= 0;
+
 export function atRisk(r: QueueRow, deadline: string, now = Date.now()) {
   const left = (new Date(deadline).getTime() - now) / DAY;
   return r.reviewer_turn && left >= 0 && left < 30 && (!r.reviewer_last || days(r.waiting_since, now) > 14);
