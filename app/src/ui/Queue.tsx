@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { atRisk, type Data, days, explain, type Me, type QueueRow, short, sinceText } from "./lib";
+import { atRisk, deadlineAhead, type Data, days, explain, type Me, type QueueRow, short, sinceText } from "./lib";
 import { AiChips, Checks, Pkg, Wait } from "./parts";
 
 // My queue (spec §5.2), and an admin's read-only view of another reviewer's queue.
@@ -29,11 +29,11 @@ export function Queue({ data, me, login }: { data: Data; me: Me; login: string }
               <Wait d={days(oldest.waiting_since)} /><span className="mono small muted">#{oldest.issue_number}</span></span>
           ) : <span className="num">—</span>}
         </div>
-        <div className="stat">
+        {deadlineAhead(me.deadline) && <div className="stat">
           <span className="label">At deadline risk</span>
           <span className="value"><span className={`num ${risk ? "risk" : ""}`}>{risk}</span>
             <span className="small muted">for {me.deadline_label.replace(/^Bioconductor /, "")}, {short(me.deadline)}</span></span>
-        </div>
+        </div>}
       </section>
       <ThreadNote />
       {rows.length === 0 ? (
