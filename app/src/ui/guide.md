@@ -44,6 +44,7 @@ before you post.
 | **Follow-up** | The submitter replied or pushed a new version. Lists which of your points are resolved, partly resolved or still open. | 1–2 min |
 | **Check triage** | Checks show errors, warnings or notes. Explains which must be fixed and whether the submitter's justifications hold. | 10–30 s |
 | **Fit & overlap** | You're unsure the package belongs in Bioconductor (vs CRAN), or suspect it duplicates an existing package. | ~30 s |
+| **License & provenance** | Before accepting any package, or when it bundles data, vendored code, or code adapted from elsewhere or written with AI. Checks the license, where third-party code and data come from, whether they can be redistributed, and AI disclosure. | 30–60 s |
 | **Nudge** | The review has stalled. Writes a short, friendly status or reminder comment. | ~5 s |
 
 You can also just ask questions: "where is the data in `inst/extdata` from?", "which exported

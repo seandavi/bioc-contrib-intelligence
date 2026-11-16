@@ -3,6 +3,7 @@
 import checkTriage from "../skills/check-triage.md";
 import firstReview from "../skills/first-review.md";
 import fitOverlap from "../skills/fit-overlap.md";
+import licensing from "../skills/licensing.md";
 import followUp from "../skills/follow-up.md";
 import nudge from "../skills/nudge.md";
 
@@ -18,4 +19,4 @@ export function parseSkill(id: string, src: string): Skill {
 // Order = chip order in the UI.
 export const SKILLS: Record<string, Skill> = Object.fromEntries(
   ([["follow-up", followUp], ["check-triage", checkTriage], ["first-review", firstReview], ["fit-overlap", fitOverlap],
-    ["nudge", nudge]] as const).map(([id, src]) => [id, parseSkill(id, src)]));
+    ["licensing", licensing], ["nudge", nudge]] as const).map(([id, src]) => [id, parseSkill(id, src)]));

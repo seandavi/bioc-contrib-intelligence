@@ -8,11 +8,12 @@ time: ~1 min
 Draft a full first review.
 
 Work through the package before writing: DESCRIPTION, NAMESPACE, R/ (structure, reuse of Bioconductor classes such as SummarizedExperiment/SingleCellExperiment/GRanges vs reinventing them, vectorisation, sapply/1:n/T/F, error handling, long functions), man/ (examples runnable, \value present, dontrun use), vignettes/ (installation from Bioconductor, evaluates real code, narrative), tests/, inst/, data and file sizes, and the current check findings (get_check_log for bioc-checks).
+Always check licensing and provenance (the list at the end): the License field and LICENSE file, code copied, adapted or vendored from elsewhere, AI-assistance disclosure, and where bundled or downloaded data comes from and whether it may be redistributed.
 Use search_code to find patterns across files rather than reading everything.
 
 Write the review into the draft (write_draft) in the shape Bioconductor reviewers use (from 1,408 past first reviews):
 - a short greeting and thanks ("Thank you for submitting your package to Bioconductor!"), optionally a one-line overall verdict,
-- findings grouped under template headings: `## General package development`, `## DESCRIPTION`, `## NAMESPACE`, `## Documentation` / `## Vignette`, `## Man pages`, `## R code`, `## Unit tests` (omit empty ones),
+- findings grouped under template headings: `## General package development`, `## DESCRIPTION`, `## NAMESPACE`, `## Documentation` / `## Vignette`, `## Man pages`, `## R code`, `## Unit tests`, `## Licensing and provenance` (omit empty ones),
 - each finding a checkbox `- [ ]`, one actionable item per box (73% of new-tracker first reviews use checkboxes), citing code as `[R/file.R#L10-L20](permalink)`; mark required vs suggested (`**Required:**` / `Suggested:`), and phrase soft asks as questions,
 - a closing request: answer point by point, bump the version to trigger a new build, comment when ready; offer help.
 Typical first reviews raise about 13 findings in 3,000–3,400 characters: be specific, not exhaustive.
@@ -120,3 +121,11 @@ Distilled from 2,433 past reviews on both trackers (experiments/reviews/out/chec
 - Resolve 'no visible binding' and 'no visible global function definition' notes by importing the needed functions (importFrom, including from methods), using .data, qualifying calls with pkg::, or declaring variables with utils::globalVariables() (1%)
 - Fix DESCRIPTION issues: set Depends R to the required version, remove LazyData or set it to false, add a valid ORCID for the maintainer and a fnd role if applicable, and make sure URL and BugReports fields are present (1%)
 - Clarify how objects flagged as undefined or uninitialized are created, for example via data(), with() or within(), so the checker can see their definition (1%)
+
+## Licensing and provenance (always check)
+
+From the guidelines, not the corpus: DESCRIPTION `License` (https://contributions.bioconductor.org/description.html#description-license) and the AI policy and third-party code chapter (https://contributions.bioconductor.org/ai-policy-third-party.html). Mark as **Required** when a rule is broken, and ask when information is missing.
+- `License` is a standard license with its version, or `file LICENSE` with the full terms; restrictive licenses (CC BY-NC, -NC-SA, -NC-ND, ACM, academic or non-commercial only) are not acceptable; `+ file LICENSE` must match the LICENSE file
+- Code copied, adapted or vendored from elsewhere (search for "adapted from", "copied from", "Copyright", "Licensed under", other projects in `src/`, JS/CSS in `inst/`) is cited in the code, its license allows redistribution under the package's license, and its copyright holders are credited (`cph` in `Authors@R`)
+- Non-trivial copied or AI-generated code is disclosed in the issue with its provenance (`Assisted-by:` / `Code copied from:`); raise only concrete signs, not style hunches
+- Every bundled dataset and file in `inst/extdata`, and data that examples or vignettes download, has a stated source and license or terms that allow redistribution; human-subject data says it is de-identified and may be shared
