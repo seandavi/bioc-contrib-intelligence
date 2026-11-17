@@ -60,11 +60,14 @@ export function Detail({ n, data, me }: { n: number; data: Data; me: Me }) {
             <details>
               <summary>Why {d} days?</summary>
               <ul className="why">
-                <li>{short(mine.assigned_at)} · {mine.reviewer} assigned{!mine.reviewer_last && " → reviewer’s move starts"}</li>
-                {mine.reviewer_last
-                  ? <li>{short(mine.reviewer_last)} · last comment by {mine.reviewer}</li>
-                  : <li>No comment by {mine.reviewer} since assignment</li>}
-                {mine.reviewer_last && mine.reviewer_turn &&
+                {rows.length > 1 && <li>{reviewers.join(" and ")} share this review: a comment by either counts</li>}
+                <li>{short(mine.first_assigned)} · first reviewer assigned{!mine.team_last && " → reviewer’s move starts"}</li>
+                {rows.filter((r) => r.assigned_at !== mine.first_assigned).map((r) =>
+                  <li key={r.reviewer}>{short(r.assigned_at)} · {r.reviewer} assigned</li>)}
+                {mine.team_last
+                  ? <li>{short(mine.team_last)} · last reviewer comment, by {mine.team_last_by}</li>
+                  : <li>No reviewer comment since assignment</li>}
+                {mine.team_last && mine.reviewer_turn &&
                   <li>{short(mine.waiting_since)} · submitter {mine.pushes_since && !mine.comments_since ? "pushed a new version" : "replied"} → reviewer’s move starts</li>}
                 <li>Today · {d} days → band <Wait d={d} /> ({band(d)})</li>
                 {atRisk(mine, me.deadline) && <li>Deadline {short(me.deadline)} is under 30 d away and the reviewer hasn’t moved → at risk</li>}
@@ -133,9 +136,11 @@ export function Detail({ n, data, me }: { n: number; data: Data; me: Me }) {
           </section>
           {mine && (
             <section className="card" aria-label="Since last comment">
-              <div className="head"><h2>Since {you ? "your" : "the reviewer’s"} last comment</h2></div>
+              <div className="head"><h2>Since the last reviewer comment</h2></div>
               <div className="body">
-                {!mine.reviewer_last && <p style={{ marginTop: 0 }}>{you ? "You haven’t" : `${mine.reviewer} hasn’t`} commented since assignment on {short(mine.assigned_at)}.</p>}
+                {!mine.team_last && <p style={{ marginTop: 0 }}>No reviewer has commented since assignment on {short(mine.first_assigned)}.</p>}
+                {rows.filter((r) => !r.reviewer_last && mine.team_last).map((r) =>
+                  <p key={r.reviewer} style={{ marginTop: 0 }} className="small muted">{r.reviewer} hasn’t commented; {mine.team_last_by} has.</p>)}
                 <div className="kv"><span className="muted">Pushes</span><span>{mine.pushes_since}</span>
                   <span className="muted">Submitter comments</span><span>{mine.comments_since}</span></div>
               </div>

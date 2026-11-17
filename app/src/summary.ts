@@ -3,7 +3,8 @@ import { type Data, days } from "./ui/lib";
 // Tracker-wide counts for the public landing page: no logins, no package names.
 export function summary(data: Pick<Data, "generated_at" | "queue" | "unassigned">, now: number) {
   const q = data.queue;
-  const theirMove = q.filter((r) => r.reviewer_turn).map((r) => days(r.waiting_since, now)).sort((a, b) => a - b);
+  // One per issue: co-reviewers share the move.
+  const theirMove = [...new Map(q.filter((r) => r.reviewer_turn).map((r) => [r.issue_number, r])).values()].map((r) => days(r.waiting_since, now)).sort((a, b) => a - b);
   const open = new Set([...q.map((r) => r.issue_number), ...data.unassigned.map((u) => u.issue_number)]);
   return {
     generated_at: data.generated_at,

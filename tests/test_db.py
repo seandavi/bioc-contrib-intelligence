@@ -149,6 +149,41 @@ def test_reviewer_queue_ball_in_court(tmp_path):
     assert rows[3] == (True, "2026-01-03 00:00:00", 0, 1)
 
 
+def test_reviewer_queue_second_reviewer(tmp_path):
+    """A second assignee's review moves the whole submission to the submitter, and the
+    clock runs from the first assignment, not the newcomer's (BiocContributions #89)."""
+    repo = "Bioconductor/BiocContributions"
+    _write(tmp_path / "bioccontributions" / "issues.jsonl", [
+        {"_repo": repo, "number": n, "title": f"pkg{n}", "state": "open", "state_reason": None,
+         "closed_at": None, "user": {"login": "sub"}, "created_at": "2026-01-01T00:00:00Z",
+         "updated_at": "2026-03-01T00:00:00Z", "labels": [], "comments": 0, "body": "",
+         "assignees": [{"login": "rev"}, {"login": "core"}]} for n in (1, 2)])
+
+    def ev(n, i, who, t, **kw):
+        return {"_repo": repo, "_issue": n, "id": i, "created_at": t, "updated_at": t,
+                "author_association": "NONE", "user": {"login": who}, "actor": {"login": who},
+                "label": {"name": "review in progress"}, **kw}
+
+    _write(tmp_path / "bioccontributions" / "timeline.jsonl", [
+        # 1: rev silent since Jan 2; core added Mar 1 and reviewed -> submitter's move
+        ev(1, 10, "lshep", "2026-01-02T00:00:00Z", event="assigned", assignee={"login": "rev"}),
+        ev(1, 11, "core", "2026-03-01T00:00:00Z", event="assigned", assignee={"login": "core"}),
+        ev(1, 12, "core", "2026-03-01T01:00:00Z", event="commented", body="review"),
+        # 2: core added but nobody has reviewed -> reviewers' move since Jan 2, for both
+        ev(2, 20, "lshep", "2026-01-02T00:00:00Z", event="assigned", assignee={"login": "rev"}),
+        ev(2, 21, "core", "2026-03-01T00:00:00Z", event="assigned", assignee={"login": "core"}),
+    ])
+    rows = db.connect(str(tmp_path)).sql(
+        "SELECT issue_number, reviewer, reviewer_turn, waiting_since::VARCHAR, "
+        "reviewer_last IS NULL, team_last_by FROM reviewer_queue ORDER BY 1, 2").fetchall()
+    assert rows == [
+        (1, "core", False, "2026-03-01 01:00:00", False, "core"),
+        (1, "rev", False, "2026-03-01 01:00:00", True, "core"),
+        (2, "core", True, "2026-01-02 00:00:00", True, None),
+        (2, "rev", True, "2026-01-02 00:00:00", True, None),
+    ]
+
+
 RUN = "https://github.com/r-universe/biocstaging/actions/runs/41"
 
 
