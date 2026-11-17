@@ -30,7 +30,8 @@ renewed with the refresh token kept in the sealed session cookie. Writes only
 work where the app is installed (Bioconductor/BiocContributions); read-only
 sign-in works without the installation.
 
-App settings: callback `https://bioc-reviews.seandavi.workers.dev/auth/callback`,
+App settings: callbacks `https://reviewer.bioconductor.org/auth/callback` and
+`https://bioc-reviews.seandavi.workers.dev/auth/callback` (the redirect uses the host signed in from),
 "Expire user authorization tokens" on, webhook off (#11 adds it).
 
 Secrets live in GCP Secret Manager (`cdsci-infra`) and are copied to the Worker:
@@ -50,3 +51,35 @@ session cookie.
 | `GET /api/me` | login, admin, allowed, deadline |
 | `GET /api/data` | the snapshot, scoped to the caller (non-admins: own assignments) |
 | `GET /api/issues/:n` | timeline + AI review body for one issue |
+| `POST /api/issues/:n/chat` | co-review agent turn (AI SDK UI message stream); body `{messages, draft, skill?, model?}` |
+| `GET /api/skills` | skills and models for the co-review sidebar |
+| `POST /api/events` | UI product signals (skill start, draft edit/undo, copy, feedback) |
+| `GET /api/usage?days=7` | admins: co-review turns, cost, tokens, latency, feedback |
+
+## Co-review agent (#39)
+
+The Review detail page has a sidebar: chat with an agent on top, the reviewer's
+draft comment below. The agent edits the draft directly (exact find/replace,
+applied in the browser to the reviewer's current text; every edit is undoable
+and shown as a diff). Nothing is posted by the agent.
+
+- **Model access:** Cloudflare AI Gateway `bioc-reviews` (unified billing, no
+  provider keys). `AI_GATEWAY_URL` is a var; `AI_GATEWAY_TOKEN` is a secret
+  (`cdsci-cloudflare-ai-gateway-token` in Secret Manager). Models: Sonnet 5.5
+  default, per-skill override in the skill's front-matter, picker in the UI.
+- **What it reads:** the issue thread and queue state (snapshot), the build
+  r-universe has now (`RemoteSha`, jobs, BiocCheck counts), the package source at
+  that commit (one tarball per commit, unpacked into R2 `src/`), and check logs
+  (GitHub Actions job logs trimmed to findings, cached in R2 `logs/`). Code is
+  cited with permalinks to the submitter's repo at the built commit.
+- **Skills:** `skills/*.md`, front-matter `label`, `description`, optional `model`.
+  Add one by adding the file and listing it in `src/skills.ts`.
+- **Observability:** Workers Logs + traces on; one `agent_turn` JSON event per turn
+  (tokens, cache, steps, per-tool timing, gateway log ids) and `ui` events, both
+  also written to R2 `obs/`. Gateway logs carry `cf-aig-metadata` {login, issue,
+  skill, turn}. `#/usage` (admins) joins them with gateway cost.
+- **Prompt injection:** thread, logs and code are submitter-controlled. The agent
+  has no GitHub write tool and its only side effect is the draft the reviewer sees.
+
+Local dev needs `AI_GATEWAY_TOKEN` and `DEV_TOKEN` (a GitHub token for logs) in
+`.dev.vars`.

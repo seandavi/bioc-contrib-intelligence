@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { atRisk, band, families, type QueueRow } from "./lib";
+import { atRisk, band, deadlineAhead, families, type QueueRow } from "./lib";
 
 test("wait bands", () => {
   expect([0, 14, 15, 28, 29, 60, 61].map(band)).toEqual(
@@ -18,11 +18,20 @@ test("check families take the worst status; missing families show none", () => {
 
 test("at risk: reviewer's move, silent or > 14 d, deadline < 30 d", () => {
   const now = Date.parse("2026-11-02T00:00:00Z");
-  const row = (o: Partial<QueueRow>) => ({ reviewer_turn: true, reviewer_last: null,
+  const row = (o: Partial<QueueRow>) => ({ reviewer_turn: true, reviewer_last: null, team_last: null,
     waiting_since: "2026-10-30T00:00:00Z", ...o }) as QueueRow;
   expect(atRisk(row({}), "2026-11-18", now)).toBe(true); // never commented
-  expect(atRisk(row({ reviewer_last: "2026-10-29T00:00:00Z" }), "2026-11-18", now)).toBe(false); // 3 d wait
+  expect(atRisk(row({ team_last: "2026-10-29T00:00:00Z" }), "2026-11-18", now)).toBe(false); // 3 d wait
+  // a co-reviewer commented: not "never commented", even though this reviewer hasn't
+  expect(atRisk(row({ team_last: "2026-10-29T00:00:00Z", reviewer_last: null }), "2026-11-18", now)).toBe(false);
   expect(atRisk(row({ reviewer_turn: false }), "2026-11-18", now)).toBe(false);
   expect(atRisk(row({}), "2027-01-18", now)).toBe(false); // deadline far
   expect(atRisk(row({}), "2026-10-01", now)).toBe(false); // deadline passed
+});
+
+test("deadlineAhead: future yes; past or unset no (hides deadline UI)", () => {
+  const now = Date.parse("2026-11-20T00:00:00Z");
+  expect(deadlineAhead("2026-11-25", now)).toBe(true);
+  expect(deadlineAhead("2026-11-18", now)).toBe(false);
+  expect(deadlineAhead("", now)).toBe(false);
 });

@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
+import { Preview } from "./CoReview";
 import { Detail } from "./Detail";
+import { Guide, Landing } from "./Guide";
 import { ago, api, type Data, type Me, short } from "./lib";
 import { Overview } from "./Overview";
 import { Queue } from "./Queue";
+import { Usage } from "./Usage";
 
 // The #/route as a path, so GA4 reports /i/170 rather than one page for everything.
 const pageView = () => (window as unknown as { gtag?: (...a: unknown[]) => void }).gtag?.("event", "page_view",
@@ -33,7 +36,7 @@ export function App() {
     return () => clearInterval(t);
   }, []);
 
-  if (s.status === 401) return <SignIn />;
+  if (s.status === 401) return <Landing />;
   if (s.error) return <Center><div className="banner err">Couldn’t load data: {s.error}</div></Center>;
   if (!s.me) return <Center><p className="muted">Loading…</p></Center>;
   const { me, data } = s;
@@ -42,8 +45,11 @@ export function App() {
   if (!data) return <Center><p className="muted">Loading…</p></Center>;
 
   let page, nav = "queue";
-  const m = route.match(/^\/(i|r)\/([^/]+)/);
-  if (m?.[1] === "i") page = <Detail n={Number(m[2])} data={data} me={me} />;
+  const m = route.match(/^\/(i|r|preview)\/([^/]+)/);
+  if (m?.[1] === "preview") return <main><Preview n={Number(m[2])} me={me} /></main>;
+  if (route === "/guide") { page = <Guide />; nav = "guide"; }
+  else if (route === "/usage" && me.admin) { page = <Usage />; nav = "usage"; }
+  else if (m?.[1] === "i") page = <Detail n={Number(m[2])} data={data} me={me} />;
   else if (m?.[1] === "r" && me.admin) { page = <Queue data={data} me={me} login={decodeURIComponent(m[2])} />; nav = ""; }
   else if (route === "/queue" || !me.admin) page = <Queue data={data} me={me} login={me.login} />;
   else { page = <Overview data={data} me={me} />; nav = "overview"; }
@@ -56,6 +62,8 @@ export function App() {
         <nav aria-label="Main">
           {me.admin && <a href="#/" aria-current={nav === "overview" ? "page" : undefined}>Overview</a>}
           <a href={me.admin ? "#/queue" : "#/"} aria-current={nav === "queue" ? "page" : undefined}>My queue</a>
+          {me.admin && <a href="#/usage" aria-current={nav === "usage" ? "page" : undefined}>Co-review usage</a>}
+          <a href="#/guide" aria-current={nav === "guide" ? "page" : undefined}>Guide</a>
         </nav>
         <div className="right">
           <span title={data.generated_at}>Data as of {short(data.generated_at)}, {data.generated_at.slice(11, 16)} UTC · {ago(data.generated_at)} · refreshes every 5 min</span>
@@ -74,20 +82,6 @@ export function App() {
 }
 
 const Center = ({ children }: { children: React.ReactNode }) => <div className="center">{children}</div>;
-
-function SignIn() {
-  return (
-    <Center>
-      <div style={{ maxWidth: 420 }}>
-        <div className="brand" style={{ justifyContent: "center", color: "var(--text)", marginBottom: 12 }}>
-          <span className="logo" style={{ background: "var(--text)", color: "#fff" }}>BR</span><span>Bioconductor Reviews</span></div>
-        <p className="muted">Pending reviews on Bioconductor/BiocContributions: whose move it is, how long it’s been
-          waiting, and what changed since the last comment.</p>
-        <a className="btn primary" href="/auth/login">Sign in with GitHub</a>
-      </div>
-    </Center>
-  );
-}
 
 function SignOut({ dark }: { dark: boolean }) {
   const out = () => fetch("/auth/logout", { method: "POST" }).then(() => location.assign("/"));

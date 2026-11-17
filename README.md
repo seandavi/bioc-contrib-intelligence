@@ -5,41 +5,41 @@
 [![Code of Conduct](https://img.shields.io/badge/Code%20of%20Conduct-Bioconductor-brightgreen)](CODE_OF_CONDUCT.md)
 
 Review-queue intelligence for Bioconductor package submissions: who owes the
-next move on each review, how long it has been waiting, and what changed since
-the last comment.
+next move on each review, how long it has been waiting, what the checks say now,
+and a co-review assistant that helps reviewers write the next comment.
 
-**App:** <https://bioc-reviews.seandavi.workers.dev> (sign in with GitHub; for
-reviewers with open assignments on
+**App:** <https://reviewer.bioconductor.org>. Signed out, it shows tracker-wide
+counts and a reviewer guide. Signing in with GitHub gives reviewers with open
+assignments on
 [Bioconductor/BiocContributions](https://github.com/Bioconductor/BiocContributions)
-and its triage team).
+their queue, and the triage team the overview.
 
 ## Why
 
-Submitters and reviewers often don't have the full picture of a review. A
-submission's status is spread across the issue thread, issue labels, the
+A submission's status is spread across the issue thread, issue labels, the
 r-universe staging build and the review bot's state. Labels collect over time,
-and r-universe re-runs checks without posting to the issue. On 2026-11-02, 48 of
-the 120 open reviewer assignments had been the reviewer's move for more than four
-weeks.
-
-This project derives each submission's current state from those sources and
-shows it to reviewers and the core team in one place. Background and numbers:
-[`docs/specs/reviewer-app.md`](docs/specs/reviewer-app.md).
+and r-universe re-runs checks without posting to the issue, so submitters and
+reviewers often don't have the full picture. This project derives each
+submission's current state from those sources and shows it in one place.
+Live counts: [`/api/public/summary`](https://reviewer.bioconductor.org/api/public/summary).
+Background: [`docs/specs/reviewer-app.md`](docs/specs/reviewer-app.md).
 
 ## What's here
 
 | Part | What it does | Where |
 |---|---|---|
-| **Corpus** | Fetches every issue and its full timeline from both trackers into append-only JSONL. DuckDB views read it directly. | `src/bcintel/fetch.py`, `db.py` |
-| **Derived state** | Whose move it is and since when, parsed build reports and versions, outcomes, live r-universe check results. | `db.py`, `dashboard.py` |
+| **Corpus** | Every issue and its full timeline from both trackers, as append-only JSONL; DuckDB views read it directly. | `src/bcintel/fetch.py`, `db.py` |
+| **Derived state** | Whose move and since when, parsed build reports and versions, outcomes, live r-universe results. | `db.py`, `dashboard.py` |
 | **Snapshot** | `data.json` plus a file per issue, rebuilt every 5 min and synced to R2. | `dashboard.py`, `scripts/run-cycle.sh` |
-| **Reviewer app** | Cloudflare Worker (Hono API) with a React UI: My queue, Overview, Review detail, AI review editor. | [`app/`](app/README.md) |
-| **Research** | Lifecycle state machine, comment-signal labelling (Cloudflare Clef), cost log. | `STATE_MACHINE.md`, `experiments/` |
+| **Reviewer app** | Cloudflare Worker (Hono) + React: My queue, Overview, Review detail, guide, usage. | [`app/`](app/README.md) |
+| **Co-review agent** | Chat sidebar and a shared draft on Review detail. Reads the thread, live checks, logs and source at the built commit; edits only the reviewer's draft. Skills: First review, Follow-up, Check triage, Fit & overlap, License & provenance, Nudge. | `app/src/agent.ts`, `app/skills/` |
+| **Research** | Lifecycle state machine, comment signals (Cloudflare Clef), the past-review corpus behind the skills, cost log. | `STATE_MACHINE.md`, `experiments/`, [`docs/writeups/`](docs/writeups/2026-11-co-review-corpus.md) |
 
 ```
 GitHub (both trackers) ─┐
-r-universe biocstaging ─┼─> bcintel cycle (every 5 min, onclappc02) ─> data/*.jsonl ─> DuckDB views
-                        │                                               └─> snapshot ─> R2 ─> Worker ─> app / API
+r-universe biocstaging ─┴─> bcintel cycle (every 5 min) ─> data/*.jsonl ─> DuckDB views
+                                                          └─> snapshot ─> R2 ─> Worker ─> app / API
+                                 Worker ─> AI Gateway (co-review), GitHub + r-universe (logs, source)
 ```
 
 ## Data
@@ -47,19 +47,17 @@ r-universe biocstaging ─┼─> bcintel cycle (every 5 min, onclappc02) ─> d
 | Tracker | Role |
 |---|---|
 | `Bioconductor/BiocContributions` | current tracker (r-universe builds, GitHub Actions bot); refreshed every 5 min |
-| `Bioconductor/Contributions` | legacy tracker (2016–2025), about 4,300 issues; history and calibration; refreshed daily |
+| `Bioconductor/Contributions` | legacy tracker (2016–2025), about 4,300 issues; history and the past-review corpus; refreshed daily |
 
-Everything comes from public GitHub and r-universe data. The corpus isn't in
-git (`data/` is ignored); it is rebuilt by `bcintel fetch` and backed up to R2.
-
-We fetch per-issue timelines rather than the repo-wide comments and events
-endpoints, because GitHub caps those at 30k items, which would truncate the
-legacy tracker.
+Everything comes from public GitHub and r-universe data. `data/` isn't in git;
+`bcintel fetch` rebuilds it and the tick backs it up to R2. We fetch per-issue
+timelines because GitHub caps the repo-wide comment and event endpoints at 30k
+items, which would truncate the legacy tracker.
 
 ## Run it
 
-Python with [uv](https://docs.astral.sh/uv/); GitHub auth from `GITHUB_TOKEN`,
-`GH_TOKEN` or a logged-in `gh`.
+Pipeline: Python with [uv](https://docs.astral.sh/uv/); GitHub auth from
+`GITHUB_TOKEN`, `GH_TOKEN` or a logged-in `gh`.
 
 ```bash
 uv sync
@@ -69,28 +67,32 @@ uv run bcintel cycle                                   # fetch + r-universe + re
 uv run ruff check src tests && uv run pytest -q
 ```
 
-Main views: `issues`, `comments`, `events`, `activity`, `reviewer_queue` (whose
-move, waiting since, what changed), `build_reports` and `checks` (parsed bot
-build reports), `packages` (name, source, outcome).
+Main views: `issues`, `comments`, `events`, `activity`, `reviewer_queue`,
+`build_reports`, `checks`, `packages`. A systemd user timer
+(`scripts/systemd/`) runs `scripts/run-cycle.sh` every 5 minutes.
 
-Scheduling: a systemd user timer (`scripts/systemd/`) runs
-`scripts/run-cycle.sh` every 5 minutes. The app has its own instructions in
+App (bun, wrangler), including auth, API routes and the agent's setup:
 [`app/README.md`](app/README.md).
 
-## Status and tracking
+## Status
 
-- Plan: [#13](https://github.com/seandavi/bioc-contrib-intelligence/issues/13).
-- Observations about the contributions process, and recommendations to discuss
-  with the Bioconductor core team:
-  [#20](https://github.com/seandavi/bioc-contrib-intelligence/issues/20).
-- The AI review panel shows a placeholder until a review engine is chosen
-  ([#12](https://github.com/seandavi/bioc-contrib-intelligence/issues/12)).
+| Live | Not yet |
+|---|---|
+| Queue, Overview, Review detail, live r-universe checks | Posting comments and (re)assigning from the app ([#8](https://github.com/seandavi/bioc-contrib-intelligence/issues/8)) |
+| Co-review agent and skills (experimental; drafts only, nothing is posted) | MCP server ([#9](https://github.com/seandavi/bioc-contrib-intelligence/issues/9)) |
+| Public landing page, guide and summary API | Scheduled comment signals ([#10](https://github.com/seandavi/bioc-contrib-intelligence/issues/10)), webhook freshness ([#11](https://github.com/seandavi/bioc-contrib-intelligence/issues/11)) |
 
-Scope: this project covers the review queue (state, waits, hand-offs). It doesn't
-do automated package review; see Bioconductor's
-[BiocPkgReviewer](https://github.com/Bioconductor/BiocPkgReviewer). The earlier
-package-review experiments (`bcintel review`, `bot`, `gate1*`, `DESIGN.md`) are
-kept but on hold and not scheduled.
+Tracking: app [#13](https://github.com/seandavi/bioc-contrib-intelligence/issues/13),
+co-review agent [#39](https://github.com/seandavi/bioc-contrib-intelligence/issues/39)
+and its discussion [#53](https://github.com/seandavi/bioc-contrib-intelligence/issues/53),
+observations and recommendations about the contributions process to discuss with
+the Bioconductor core team [#20](https://github.com/seandavi/bioc-contrib-intelligence/issues/20).
+
+Scope: the co-review agent is a writing aid for a human reviewer, who decides
+what gets posted. Automated package review is
+[BiocPkgReviewer](https://github.com/Bioconductor/BiocPkgReviewer)'s job. The
+earlier batch-review experiments (`bcintel review`, `bot`, `gate1*`, `DESIGN.md`)
+are kept but not scheduled.
 
 ## Contributing, license, citation
 

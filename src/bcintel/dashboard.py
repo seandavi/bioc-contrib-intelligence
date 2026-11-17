@@ -20,7 +20,8 @@ REVIEW_STUB = "REVIEW BODY HERE\n"
 
 QUEUE = """
 SELECT issue_number, title, submitter, reviewer, reviewer_turn, waiting_since,
-       assigned_at, reviewer_last, comments_since, pushes_since, build, stage,
+       assigned_at, reviewer_last, first_assigned, team_last, team_last_by,
+       comments_since, pushes_since, build, stage,
        stage_since, last_comment
 FROM reviewer_queue WHERE repo = $repo
 ORDER BY reviewer_turn DESC, waiting_since

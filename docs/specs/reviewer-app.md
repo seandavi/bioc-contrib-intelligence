@@ -56,6 +56,10 @@ Every open assignment is in exactly one of these states:
 - **Submitter's move**: the reviewer commented last and the submitter hasn't
   responded.
 
+With two or more assigned reviewers the move is per submission: a comment by any
+assignee counts for all of them, and the clock starts at the first assignment
+(BiocContributions #89: a core-team member added themselves and reviewed).
+
 **Waiting** = days since the move passed to the current party. This is the main
 number in the app. Proposed severity bands (configurable, based on the historical
 distribution):

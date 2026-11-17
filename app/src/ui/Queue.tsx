@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { atRisk, type Data, days, explain, type Me, type QueueRow, short, sinceText } from "./lib";
+import { atRisk, deadlineAhead, type Data, days, explain, type Me, type QueueRow, short, sinceText } from "./lib";
 import { AiChips, Checks, Pkg, Wait } from "./parts";
 
 // My queue (spec §5.2), and an admin's read-only view of another reviewer's queue.
@@ -29,11 +29,11 @@ export function Queue({ data, me, login }: { data: Data; me: Me; login: string }
               <Wait d={days(oldest.waiting_since)} /><span className="mono small muted">#{oldest.issue_number}</span></span>
           ) : <span className="num">—</span>}
         </div>
-        <div className="stat">
+        {deadlineAhead(me.deadline) && <div className="stat">
           <span className="label">At deadline risk</span>
           <span className="value"><span className={`num ${risk ? "risk" : ""}`}>{risk}</span>
             <span className="small muted">for {me.deadline_label.replace(/^Bioconductor /, "")}, {short(me.deadline)}</span></span>
-        </div>
+        </div>}
       </section>
       <ThreadNote />
       {rows.length === 0 ? (
@@ -88,7 +88,7 @@ function Section({ title, rows, data, me, you, open: initial }:
                       <span className="small muted">{explain(r, you)}</span>
                       {atRisk(r, me.deadline) && <span className="tag tag-risk">⚠ At risk for {me.deadline_label.replace(/^Bioconductor /, "")}</span>}
                     </div></td>
-                    <td>{sinceText(r)}<div className="small muted">{r.reviewer_last ? `since ${short(r.reviewer_last)}` : "since assignment"}</div></td>
+                    <td>{sinceText(r)}<div className="small muted">{r.team_last ? `since ${short(r.team_last)}` : "since assignment"}</div></td>
                     <td><Checks info={data.issues[r.issue_number]} /></td>
                     <td>{r.stage ?? "—"}<div className="small muted">{r.stage_since && `since ${short(r.stage_since)}`}</div></td>
                     <td><div className="clamp small">{r.last_comment ?? <span className="muted">No human comments yet</span>}</div></td>

@@ -63,8 +63,16 @@ export function AiChips() {
   );
 }
 
-export function Md({ text }: { text: string }) {
-  const html = DOMPurify.sanitize(marked.parse(text, { async: false, gfm: true, breaks: true }) as string);
+// Links open in a new tab (leaving would drop a running co-review turn).
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (node.tagName === "A" && /^https?:/.test(node.getAttribute("href") ?? "")) { node.setAttribute("target", "_blank"); node.setAttribute("rel", "noopener noreferrer"); }
+});
+
+// `agent`: model output can't load images (an injected ![](https://x/?d=…) would leak data).
+// prose: hard-wrapped markdown (the guide); comments keep GitHub's line breaks.
+export function Md({ text, agent, prose }: { text: string; agent?: boolean; prose?: boolean }) {
+  const html = DOMPurify.sanitize(marked.parse(text, { async: false, gfm: true, breaks: !prose }) as string,
+    agent ? { FORBID_TAGS: ["img"] } : {});
   return <div className="md" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
