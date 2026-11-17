@@ -176,8 +176,11 @@ WHERE (NOT c.is_bot AND NOT starts_with(ltrim(c.body), '/'))
        AND c.body NOT LIKE '%First build detected%');  -- the first build isn't a resubmission
 
 -- One row per (open issue, assigned reviewer): whose move it is and since when.
--- Rule: the reviewer owes a move if they haven't commented since assignment, or
--- the submitter commented/pushed after the reviewer's last comment. A submitter
+-- The move belongs to the submission, not the assignee: the assigned reviewers are
+-- one side (a core-team member who adds themselves and reviews answers for the
+-- original reviewer too). Rule: the reviewers owe a move if none of them has
+-- commented since the first assignment, or the submitter commented/pushed after the
+-- latest reviewer comment. reviewer_last stays per person. A submitter
 -- "thanks, working on it" also flips the ball (known false positive; the
 -- dashboard shows the last comment so a human can tell).
 CREATE OR REPLACE VIEW reviewer_queue AS
@@ -194,36 +197,45 @@ WITH q AS (
     (SELECT max(a.occurred_at) FROM activity a
      WHERE a.repo = q.repo AND a.issue_number = q.issue_number
        AND a.kind = 'comment' AND a.who = q.reviewer) AS reviewer_last,
+    -- role 'reviewer' = a current assignee (activity view)
+    (SELECT arg_max(a.who, a.occurred_at) FROM activity a
+     WHERE a.repo = q.repo AND a.issue_number = q.issue_number
+       AND a.kind = 'comment' AND a.role = 'reviewer') AS team_last_by,
+    (SELECT max(a.occurred_at) FROM activity a
+     WHERE a.repo = q.repo AND a.issue_number = q.issue_number
+       AND a.kind = 'comment' AND a.role = 'reviewer') AS team_last,
     list_filter(labels, l -> l LIKE 'Build %') AS build,
     list_filter(labels, l -> l IN ('pre-review', 'review in progress', 'inactive review',
                                    'administration required'))[1] AS stage
   FROM q
+), t2 AS (
+  SELECT *, min(assigned_at) OVER (PARTITION BY repo, issue_number) AS first_assigned FROM t
 ), s AS (
   SELECT t.*,
     (SELECT min(a.occurred_at) FROM activity a
      WHERE a.repo = t.repo AND a.issue_number = t.issue_number AND a.role = 'submitter'
-       AND a.occurred_at > coalesce(t.reviewer_last, t.assigned_at)) AS submitter_first_since,
+       AND a.occurred_at > coalesce(t.team_last, t.first_assigned)) AS submitter_first_since,
     (SELECT count(*) FROM activity a
      WHERE a.repo = t.repo AND a.issue_number = t.issue_number AND a.role = 'submitter'
        AND a.kind = 'comment'
-       AND a.occurred_at > coalesce(t.reviewer_last, t.assigned_at)) AS comments_since,
+       AND a.occurred_at > coalesce(t.team_last, t.first_assigned)) AS comments_since,
     (SELECT count(*) FROM activity a
      WHERE a.repo = t.repo AND a.issue_number = t.issue_number
        AND a.kind = 'push'
-       AND a.occurred_at > coalesce(t.reviewer_last, t.assigned_at)) AS pushes_since,
+       AND a.occurred_at > coalesce(t.team_last, t.first_assigned)) AS pushes_since,
     (SELECT max(e.created_at) FROM events e
      WHERE e.repo = t.repo AND e.issue_number = t.issue_number
        AND e.event = 'labeled' AND e.label = t.stage) AS stage_since,
     (SELECT arg_max(a.who || ': ' || left(a.body, 300), a.occurred_at) FROM activity a
      WHERE a.repo = t.repo AND a.issue_number = t.issue_number
        AND a.kind = 'comment') AS last_comment
-  FROM t
+  FROM t2 AS t
 )
 SELECT *,
-  reviewer_last IS NULL OR submitter_first_since IS NOT NULL AS reviewer_turn,
-  CASE WHEN reviewer_last IS NULL THEN assigned_at
+  team_last IS NULL OR submitter_first_since IS NOT NULL AS reviewer_turn,
+  CASE WHEN team_last IS NULL THEN first_assigned
        WHEN submitter_first_since IS NOT NULL THEN submitter_first_since
-       ELSE reviewer_last END AS waiting_since
+       ELSE team_last END AS waiting_since
 FROM s;
 """
 

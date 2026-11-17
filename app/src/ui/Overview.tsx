@@ -12,9 +12,10 @@ const median = (a: number[]) => {
 // Admin home (spec §5.4).
 export function Overview({ data, me }: { data: Data; me: Me }) {
   const q = data.queue;
-  const theirMove = q.filter((r) => r.reviewer_turn);
+  // One row per issue: a submission with two reviewers has one move (they share it).
+  const theirMove = [...new Map(q.filter((r) => r.reviewer_turn).map((r) => [r.issue_number, r])).values()];
   const over28 = theirMove.filter((r) => days(r.waiting_since) > 28);
-  const silent = over28.filter((r) => !r.reviewer_last);
+  const silent = over28.filter((r) => !r.team_last);
   const risk = theirMove.filter((r) => atRisk(r, me.deadline));
   const reviewers = new Set(q.map((r) => r.reviewer));
   const open = new Set([...q.map((r) => r.issue_number), ...data.unassigned.map((u) => u.issue_number)]);
@@ -60,7 +61,7 @@ function Attention({ data, me }: { data: Data; me: Me }) {
   data.unassigned.forEach((u) => seen.add(u.issue_number));
   const groups = [
     { title: "Stalled, no reviewer comment", desc: "Over 60 d since assignment with no comment from the reviewer. Candidates for reassignment.",
-      rows: take(byWait.filter((r) => !r.reviewer_last && days(r.waiting_since) > 60)) },
+      rows: take(byWait.filter((r) => !r.team_last && days(r.waiting_since) > 60)) },
     { title: `At risk for ${me.deadline_label.replace(/^Bioconductor /, "")}`, desc: "Reviewer’s move, deadline close.",
       rows: take(byWait.filter((r) => atRisk(r, me.deadline))) },
     { title: "Stale", desc: "Reviewer’s move for 29–60 d.", rows: take(byWait.filter((r) => band(days(r.waiting_since)) === "stale")) },

@@ -60,6 +60,11 @@ computer.
 assigned, or when the submitter has commented or pushed a new version since the reviewer's
 last comment. Otherwise it is the *submitter's move*.
 
+**Two reviewers.** When a second reviewer is assigned, for example a core-team member who
+takes over a stalled review, the move belongs to the submission, not to each person. A
+comment by either reviewer counts for both, and the wait runs from the first assignment. The
+review page still says which reviewer hasn't commented.
+
 **Waiting** is the number of days since the move passed to whoever has it now:
 
 | Band | Waiting | Meaning |

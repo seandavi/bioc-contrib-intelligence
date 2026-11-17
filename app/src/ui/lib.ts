@@ -4,6 +4,8 @@
 export type QueueRow = {
   issue_number: number; title: string; submitter: string; reviewer: string;
   reviewer_turn: boolean; waiting_since: string; assigned_at: string; reviewer_last: string | null;
+  // The move belongs to the submission: any assigned reviewer's comment counts (db.py reviewer_queue).
+  first_assigned: string; team_last: string | null; team_last_by: string | null;
   comments_since: number; pushes_since: number; build: string[]; stage: string | null;
   stage_since: string | null; last_comment: string | null;
 };
@@ -42,7 +44,7 @@ export const deadlineAhead = (deadline: string, now = Date.now()) =>
 
 export function atRisk(r: QueueRow, deadline: string, now = Date.now()) {
   const left = (new Date(deadline).getTime() - now) / DAY;
-  return r.reviewer_turn && left >= 0 && left < 30 && (!r.reviewer_last || days(r.waiting_since, now) > 14);
+  return r.reviewer_turn && left >= 0 && left < 30 && (!r.team_last || days(r.waiting_since, now) > 14);
 }
 
 // Platforms vary per run (linux/macos/windows × arm64/x86_64, wasm), so chips group
@@ -73,9 +75,9 @@ export const ago = (t: string, now = Date.now()) => {
 
 // One line under the wait chip: why the clock started.
 export function explain(r: QueueRow, you: boolean) {
-  const who = you ? "you" : r.reviewer;
-  if (!r.reviewer_last) return `Assigned ${short(r.assigned_at)}, no comment from ${who} since`;
-  if (!r.reviewer_turn) return `${you ? "You" : r.reviewer} commented ${short(r.reviewer_last)}`;
+  if (!r.team_last) return `Assigned ${short(r.first_assigned)}, no reviewer comment since`;
+  const by = r.team_last_by === r.reviewer ? (you ? "You" : r.reviewer) : r.team_last_by;
+  if (!r.reviewer_turn) return `${by} commented ${short(r.team_last)}`;
   return r.pushes_since && !r.comments_since
     ? `Submitter pushed ${short(r.waiting_since)}`
     : `Submitter replied ${short(r.waiting_since)}`;

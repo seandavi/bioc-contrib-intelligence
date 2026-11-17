@@ -221,7 +221,8 @@ function renderContext(a: { n: number; data: Data; info: Info; submitter: string
     : a.reviewers.includes(e.who) ? "reviewer" : "other";
   const rows = a.data.queue.filter((r) => r.issue_number === a.n)
     .map((r) => `- ${r.reviewer}: ${r.reviewer_turn ? "reviewer's move" : "submitter's move"} since ${r.waiting_since}; ` +
-      `assigned ${r.assigned_at}; reviewer's last comment ${r.reviewer_last ?? "none"}; since then ` +
+      `assigned ${r.assigned_at}; own last comment ${r.reviewer_last ?? "none"}; latest reviewer comment ${r.team_last ?? "none"}` +
+      `${r.team_last_by ? ` by ${r.team_last_by}` : ""}; since then ` +
       `${r.comments_since} submitter comments, ${r.pushes_since} pushes; stage '${r.stage}'`).join("\n");
   const thread = renderThread(a.thread, role, gh);
   const b = a.b;
