@@ -219,11 +219,18 @@ Rules:
 - Bioconductor data containers are required, not optional. A package that works only with Seurat (or AnnData,
   or plain matrices/data.frames standing in for assay data) does not meet the standard. It must accept the
   appropriate Bioconductor class (SummarizedExperiment / SingleCellExperiment; GRanges, MultiAssayExperiment,
-  SpatialExperiment etc. where they fit) and, when given one, return the same class with results stored in it
-  (assays, colData/rowData, reducedDims, metadata). Converting to Seurat internally and returning a Seurat object
-  or a list does not meet it. The vignette's default examples must use the Bioconductor classes and show the
-  package working in a Bioconductor workflow; other ecosystems can be shown as secondary. Check this in the code
-  (search for Seurat/AnnData calls, input checks, return values) and state exactly what must change.`;
+  SpatialExperiment etc. where they fit). What comes back depends on what the function does:
+  - Functions that transform or annotate the data in the container (normalization, filtering, QC metrics, cell or
+    feature labels, imputation, reduced dimensions, new assays) must return the same class they were given, with
+    the result stored in it (assays, colData/rowData, reducedDims). Converting to Seurat internally and returning
+    a Seurat object or a list is not acceptable here.
+  - Functions that compute analysis results across samples or features (differential expression tables, test
+    statistics, enrichment or association results) may return a data.frame or DataFrame. Don't require these to
+    be stored back in the input object; at most suggest DataFrame or metadata() as an option.
+  The vignette's default examples must use the Bioconductor classes and show the package working in a
+  Bioconductor workflow; other ecosystems can be shown as secondary. Check this in the code (search for
+  Seurat/AnnData calls, input checks, return values), classify each exported function as transform/annotate vs
+  analysis result, and state exactly what must change.`;
 
 function renderContext(a: { n: number; data: Data; info: Info; submitter: string; reviewers: string[]; user: User;
   thread: Entry[]; b: Build | null; files: string }) {
