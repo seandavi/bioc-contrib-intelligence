@@ -6,7 +6,7 @@ Instructions for coding agents working in this repo. Human contributors: see CON
 
 The co-review agent (`app/src/agent.ts` RULES, `app/skills/*.md`) drafts reviews that the Bioconductor
 core team reads. Keep these standards in the prompts whenever you edit them, and check new drafts
-against them. Source: core-team feedback on a posted review, adopted 2026-11-18 (#64, #65, PRs #66, #67).
+against them. Rationale: docs/adr/0001-co-review-holds-bioconductor-standards.md (#64, #65, PRs #66, #67).
 
 - **Never soften Bioconductor standards.** Anything the guidelines or the core team require is written
   as **Required:**, never "consider", "suggested" or a question, and is never traded away to get a
