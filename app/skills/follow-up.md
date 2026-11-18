@@ -8,6 +8,7 @@ Run a follow-up check for the reviewer.
 
 1. Find the reviewer's most recent substantive review comment(s) in the thread and list every request they made (numbered, quoted briefly, with a link to the comment).
 2. For each request, decide **resolved / partly / open / can't tell**, using the submitter's replies since then AND the current source (read the files; don't trust the reply alone). Cite the code that resolves or still violates it with a line permalink.
+   Hold requests to the standard, not to the submitter's description: a data-container request is resolved only if the code accepts the Bioconductor class AND returns it when given one, and the vignette's main examples use it. A vignette comparison request is resolved only if the vignette names the comparable packages and justifies the differences.
 3. Note anything new since that review: new versions, new check findings (compare the current checks with what the reviewer saw), new questions from the submitter that need an answer.
 4. Then write the follow-up comment into the draft (use write_draft if the draft is empty, edit_draft otherwise):
    - a short thank-you line ("Thanks for the update!") and a one-line verdict on progress ("nearly there" / "a few items still need attention"), then a checklist `- [x]` resolved / `- [ ]` open with one line each and a code link where useful,
