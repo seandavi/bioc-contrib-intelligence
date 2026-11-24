@@ -26,6 +26,8 @@
     // ponytail: one release deadline, edited by redeploy (decision in #12).
     "DEADLINE": "2026-11-18",
     "DEADLINE_LABEL": "Bioconductor 3.24 manifest",
+    // Co-review $ per reviewer per rolling 7 days (admins exempt); estimated from tokens.
+    "WEEKLY_CAP_USD": "25",
     "AI_GATEWAY_URL": "https://gateway.ai.cloudflare.com/v1/55bf7202fe14474e57a300f56a652f64/bioc-reviews"
   }
   // Secrets (wrangler secret put): GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, SESSION_SECRET,

@@ -56,3 +56,19 @@ test("fresh: renews an expiring token with the refresh token", async () => {
     globalThis.fetch = real;
   }
 });
+
+test("fresh: re-checks admin with the renewed token", async () => {
+  const real = globalThis.fetch;
+  globalThis.fetch = (async (url: string) => {
+    if (String(url).includes("access_token")) return new Response(JSON.stringify({ access_token: "new", expires_in: 28800 }));
+    if (String(url).endsWith("/user")) return new Response(JSON.stringify({ login: "rev" }));
+    return new Response(JSON.stringify({ permissions: { triage: false } }));
+  }) as typeof fetch;
+  try {
+    const out = await fresh({ ...u("rev"), admin: true, refresh: "r1", token_exp: Date.now() + 30e3 }, "id", "s", "o/r");
+    expect(out?.admin).toBe(false);
+    expect(out?.token).toBe("new");
+  } finally {
+    globalThis.fetch = real;
+  }
+});
