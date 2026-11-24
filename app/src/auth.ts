@@ -26,13 +26,16 @@ export const withTokens = (u: User, t: Tokens): User => ({
   token_exp: t.expires_in ? Date.now() + t.expires_in * 1000 : undefined,
 });
 
-// Renew the user token a minute before it expires. null = sign in again.
-export async function fresh(u: User, clientId: string, secret: string): Promise<User | null> {
+// Renew the user token a minute before it expires (every ~8 h), and re-check admin
+// with the new token so a lost triage permission doesn't last the 7-day session. null = sign in again.
+export async function fresh(u: User, clientId: string, secret: string, repo = ""): Promise<User | null> {
   if (!u.token_exp || u.token_exp - 60e3 > Date.now()) return u;
   if (!u.refresh) return null;
   const t = await exchange({ client_id: clientId, client_secret: secret,
     grant_type: "refresh_token", refresh_token: u.refresh });
-  return t ? withTokens(u, t) : null;
+  if (!t) return null;
+  const now = repo ? await resolveUser(t.access_token, repo) : null;
+  return withTokens({ ...u, admin: now ? now.admin : u.admin }, t);
 }
 export type Data = {
   repo: string;

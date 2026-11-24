@@ -9,6 +9,7 @@ import { convertToModelMessages, createUIMessageStreamResponse, stepCountIs, str
 import { z } from "zod";
 import type { Data, User } from "./auth";
 import { SKILLS } from "./skills";
+import { addSpend, turnCost } from "./spend";
 import { build, type Build, checkLog, listing, overview, readFile, search, tree, type Tree } from "./sources";
 
 export type AgentEnv = {
@@ -178,6 +179,8 @@ export async function chat(env: AgentEnv, user: User, data: Data, n: number, thr
       };
       console.log(JSON.stringify(ev));
       waitUntil(env.DATA.put(`obs/turns/${ev.at.slice(0, 10)}/${id}.json`, JSON.stringify(ev)));
+      // ponytail: errored/stopped turns report no usage, so they don't count toward the cap.
+      waitUntil(addSpend(env.DATA, user.login, turnCost(model, f.totalUsage)));
     },
     onError: ({ error }) => record("error", String((error as Error)?.message ?? error)),
     onAbort: () => record("aborted"),

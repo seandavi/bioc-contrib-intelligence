@@ -252,7 +252,8 @@ function SkillTip({ s }: { s: Skill }) {
 }
 
 const friendly = (m: string) =>
-  /rate_limited|Too many/.test(m) ? "too many requests; wait a minute and retry."
+  /weekly_cap/.test(m) ? (m.match(/"message":"([^"]+)"/)?.[1] ?? "you've used this week's co-review budget.")
+    : /rate_limited|Too many/.test(m) ? "too many requests; wait a minute and retry."
     : /loop_limit/.test(m) ? "it took too many automatic steps for one message."
       : /sign_in|401/.test(m) ? "your session expired; reload the page to sign in again." : m.slice(0, 300);
 
