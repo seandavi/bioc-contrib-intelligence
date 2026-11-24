@@ -223,6 +223,22 @@ main:has(.cr-layout) { max-width: none; }
 .tipwrap:nth-last-child(-n+2) .tip { left: auto; right: 0; }
 
 /* Guide: long-form prose, so a readable measure and larger type than comments. */
+/* Landing (signed out) */
+.hero { background: radial-gradient(1200px 400px at 85% -10%, #2a4f8f 0%, transparent 60%), var(--bar-bg); color: var(--bar-text); }
+.hero-in { max-width: var(--content-max); margin: 0 auto; padding: 56px var(--page-pad) 48px; }
+.hero h1 { font-size: clamp(28px, 4vw, 42px); line-height: 1.15; max-width: 22ch; color: #fff; letter-spacing: -0.02em; }
+.hero .eyebrow { margin: 0 0 10px; font: 500 12px var(--font-mono); color: var(--bar-muted); text-transform: uppercase; letter-spacing: .08em; }
+.hero .lede { margin: 14px 0 0; font-size: 17px; line-height: 1.5; max-width: 60ch; color: var(--bar-text); }
+.hero .cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.hero .cta .btn { min-height: 40px; padding: 0 18px; font-size: 14px; }
+.btn.ghost { background: transparent; color: #fff; border-color: rgb(255 255 255 / .35); }
+.btn.ghost:hover { background: rgb(255 255 255 / .08); color: #fff; }
+.hero .hint { margin: 14px 0 0; color: var(--bar-muted); }
+.features { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 12px; }
+.feature { padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); }
+.feature .icon { display: inline-grid; place-items: center; width: 30px; height: 30px; margin-bottom: 10px; border-radius: 7px;
+                 background: var(--accent-tint); color: var(--accent); font-size: 16px; }
+.feature p { margin: 6px 0 0; color: var(--muted); line-height: 1.5; }
 .guide .md { font-size: 14px; line-height: 1.6; max-width: 76ch; }
 .guide .md h2 { margin: 28px 0 8px; font-size: 17px; }
 .guide .md h2:first-child { margin-top: 4px; }
