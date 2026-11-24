@@ -58,10 +58,57 @@ SELECT p.issue_number, p.package_name, p.source_url
 FROM packages p JOIN issues i ON i.repo = p.repo AND i.number = p.issue_number
 WHERE p.repo = $repo AND i.state = 'open'
 """
+# Weekly replay of the reviewer_queue rule at past instants t = now, now-7d, ...:
+# backlog sizes and the reviewer's-move wait as they stood then. A reviewer is anyone
+# ever assigned to the issue (assignees at close aren't the assignees back then).
+# ponytail: ignores reopen and unassign events; fine for backlog-level trends.
+TREND = """
+WITH pts AS (
+  SELECT $now::TIMESTAMP - k * INTERVAL 7 DAY AS t
+  FROM range(0, (SELECT date_diff('day', min(created_at), $now::TIMESTAMP) // 7 + 1
+                 FROM issues WHERE repo = $repo)) r(k)
+), asg AS MATERIALIZED (
+  SELECT issue_number, assignee, created_at FROM events WHERE repo = $repo AND event = 'assigned'
+), act AS MATERIALIZED (
+  SELECT a.issue_number, a.occurred_at, a.role = 'submitter' AS by_sub,
+         a.kind = 'comment' AND EXISTS (SELECT 1 FROM asg WHERE asg.issue_number = a.issue_number
+                                        AND asg.assignee = a.who) AS by_rev
+  FROM activity a WHERE a.repo = $repo
+), st AS (
+  SELECT p.t, i.number,
+    (SELECT min(created_at) FROM asg
+     WHERE asg.issue_number = i.number AND asg.created_at <= p.t) AS first_assigned,
+    (SELECT max(occurred_at) FROM act WHERE act.issue_number = i.number AND by_rev
+       AND occurred_at <= p.t) AS team_last
+  FROM pts p JOIN issues i ON i.repo = $repo AND i.created_at <= p.t
+    AND (i.closed_at IS NULL OR i.closed_at > p.t)
+), w AS (
+  SELECT *, first_assigned IS NOT NULL AND (team_last IS NULL OR sub_first IS NOT NULL) AS rt,
+    floor(epoch(t - CASE WHEN team_last IS NULL THEN first_assigned
+                         WHEN sub_first IS NOT NULL THEN sub_first
+                         ELSE team_last END) / 86400) AS wait
+  FROM (SELECT *, (SELECT min(occurred_at) FROM act WHERE act.issue_number = st.number AND by_sub
+                     AND occurred_at > coalesce(team_last, first_assigned)
+                     AND occurred_at <= st.t) AS sub_first FROM st)
+)
+SELECT p.t,
+  count(w.number) AS open,
+  count(w.number) FILTER (WHERE w.first_assigned IS NULL) AS unassigned,
+  count(w.number) FILTER (WHERE w.rt) AS reviewer_move,
+  count(w.number) FILTER (WHERE w.rt AND w.wait > 28) AS over28,
+  median(w.wait) FILTER (WHERE w.rt) AS median_wait,
+  quantile_cont(w.wait, 0.9) FILTER (WHERE w.rt) AS p90_wait,
+  (SELECT count(*) FROM issues i WHERE i.repo = $repo
+     AND i.created_at > p.t - INTERVAL 7 DAY AND i.created_at <= p.t) AS opened,
+  (SELECT count(*) FROM issues i WHERE i.repo = $repo
+     AND i.closed_at > p.t - INTERVAL 7 DAY AND i.closed_at <= p.t) AS closed
+FROM pts p LEFT JOIN w ON w.t = p.t
+GROUP BY p.t ORDER BY p.t
+"""
 
 
-def _rows(con, sql: str) -> list[dict]:
-    cur = con.execute(sql, {"repo": REPO})
+def _rows(con, sql: str, **params) -> list[dict]:
+    cur = con.execute(sql, {"repo": REPO, **params})
     cols = [d[0] for d in cur.description]
     return [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]
 
@@ -120,6 +167,12 @@ def _issue_info(con, live: dict[str, dict] | None = None) -> dict[int, dict]:
     return info
 
 
+def trend(con, now: datetime | None = None) -> list[dict]:
+    """Weekly backlog and reviewer's-move wait, oldest first; the last point is now."""
+    now = now or datetime.now(timezone.utc).replace(tzinfo=None)  # data timestamps are naive UTC
+    return _rows(con, TREND, now=now)
+
+
 def build(data_dir: Path, out_dir: Path) -> Path:
     con = db.connect(str(data_dir))
     threads: dict[int, list] = {}
@@ -131,6 +184,7 @@ def build(data_dir: Path, out_dir: Path) -> Path:
         "queue": _rows(con, QUEUE),
         "unassigned": _rows(con, UNASSIGNED),
         "issues": _issue_info(con, _live(_read_json(data_dir / "runiverse" / "biocstaging.json"))),
+        "trend": trend(con),
     }
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "data.json").write_text(json.dumps(data, default=_enc))

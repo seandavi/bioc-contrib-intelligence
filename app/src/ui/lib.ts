@@ -21,9 +21,14 @@ export type IssueInfo = {
   package?: string; source_url?: string; latest_build: Build | null; live: Live | null; live_differs: boolean;
   versions: Array<{ version: string; posted_at: string; kind: string; worst: string | null }>;
 };
+// One week of dashboard.py TREND: the backlog as it stood at t (the last point is now).
+export type TrendPoint = {
+  t: string; open: number; unassigned: number; reviewer_move: number; over28: number;
+  median_wait: number | null; p90_wait: number | null; opened: number; closed: number;
+};
 export type Data = {
   repo: string; generated_at: string; queue: QueueRow[]; unassigned: Unassigned[];
-  issues: Record<string, IssueInfo>;
+  issues: Record<string, IssueInfo>; trend?: TrendPoint[]; // absent in snapshots before trends
 };
 export type Me = { login: string; admin: boolean; allowed: boolean; repo: string; deadline: string; deadline_label: string };
 export type Entry = { id: number; created_at: string; kind: string; who: string; is_bot: boolean; body: string | null };
