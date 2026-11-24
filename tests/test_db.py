@@ -288,3 +288,37 @@ def test_dashboard_live_runiverse(tmp_path):
     assert [j["platform"] for j in one["live"]["jobs"]] == ["source", "macos-release-arm64"]
     assert one["live_differs"] is True  # report says BUILD_FAILED, r-universe says ERROR
     assert dashboard._issue_info(db.connect(str(tmp_path)))[1]["live"] is None  # no snapshot yet
+
+
+def test_dashboard_trend_replays_queue_rule(tmp_path):
+    """Weekly points back from `now`: backlog and reviewer's-move wait as they stood then."""
+    from datetime import datetime
+
+    from bcintel import dashboard
+    repo = "Bioconductor/BiocContributions"
+    base = {"_repo": repo, "title": "p", "state_reason": None, "user": {"login": "sub"},
+            "created_at": "2026-01-01T00:00:00Z", "updated_at": "2026-03-01T00:00:00Z",
+            "labels": [], "comments": 0, "body": ""}
+    _write(tmp_path / "bioccontributions" / "issues.jsonl", [
+        {**base, "number": 1, "state": "open", "closed_at": None,
+         "assignees": [{"login": "rev"}]},
+        {**base, "number": 2, "state": "closed", "closed_at": "2026-01-10T00:00:00Z",
+         "assignees": []},
+    ])
+
+    def ev(i, who, t, **kw):
+        return {"_repo": repo, "_issue": 1, "id": i, "created_at": t, "updated_at": t,
+                "author_association": "NONE", "user": {"login": who}, "actor": {"login": who},
+                "label": {"name": "review in progress"}, **kw}
+
+    _write(tmp_path / "bioccontributions" / "timeline.jsonl", [
+        ev(10, "lshep", "2026-01-02T00:00:00Z", event="assigned", assignee={"login": "rev"}),
+        ev(11, "rev", "2026-01-05T00:00:00Z", event="commented", body="review"),
+        ev(12, "github-actions[bot]", "2026-01-08T00:00:00Z", event="commented",
+           body="New build detected for p, version 0.99.1."),
+    ])
+    rows = dashboard.trend(db.connect(str(tmp_path)), now=datetime(2026, 1, 16))
+    got = [(r["t"].day, r["open"], r["unassigned"], r["reviewer_move"], r["median_wait"])
+           for r in rows]
+    # Jan 2: just assigned; Jan 9: pushed Jan 8 after the review; Jan 16: #2 closed
+    assert got == [(2, 2, 1, 1, 0), (9, 2, 1, 1, 1), (16, 1, 0, 1, 8)]
