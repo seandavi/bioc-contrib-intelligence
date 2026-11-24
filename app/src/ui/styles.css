@@ -241,7 +241,9 @@ main:has(.cr-layout) { max-width: none; }
 .feature .icon { display: inline-grid; place-items: center; width: 30px; height: 30px; margin-bottom: 10px; border-radius: 7px;
                  background: var(--accent-tint); color: var(--accent); font-size: 16px; }
 .feature p { margin: 6px 0 0; color: var(--muted); line-height: 1.5; }
-.guide .md { font-size: 14px; line-height: 1.6; max-width: 76ch; }
+.guide { width: 100%; max-width: 760px; margin-inline: auto; }
+.guide .md { font-size: 14px; line-height: 1.6; }
+.guide .md td:last-child { white-space: nowrap; }
 .guide .md h2 { margin: 28px 0 8px; font-size: 17px; }
 .guide .md h2:first-child { margin-top: 4px; }
 .guide .md h3 { margin: 18px 0 6px; font-size: 15px; }
