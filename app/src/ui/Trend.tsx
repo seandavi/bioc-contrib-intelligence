@@ -3,8 +3,8 @@ import type { TrendPoint } from "./lib";
 type Line = { key: keyof TrendPoint; label: string; color: string; dash?: string };
 const W = 640, H = 200, L = 36, R = 8, T = 8, B = 22;
 const mon = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" });
-// Launch dates (git history: 024a28a app v1; 4b163a2 + b99ad9a co-reviewer and public URL).
-const MARKS = [{ t: "2026-11-02", label: "App" }, { t: "2026-11-14", label: "Co-reviewer" }];
+// Co-reviewer launch (git history: 4b163a2 + b99ad9a, co-reviewer and public URL).
+const MARKS = [{ t: "2026-11-14", label: "Co-reviewer" }];
 const day = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 
 // ponytail: hand-rolled SVG lines, no chart lib; add one if we need zoom or many series.
@@ -67,7 +67,7 @@ export function Trends({ pts }: { pts: TrendPoint[] }) {
             { key: "p90_wait", label: "90th percentile", color: "var(--risk)", dash: "4 3" },
           ]} /></div>
       </div>
-      <p className="note body">Replayed from the issue history with today’s whose-move rule; the last point is now. Reopened and unassigned events are ignored. Dotted line: 28 d. Purple dashed lines: the app went live (Nov 2) and the co-reviewer launched (Nov 14).</p>
+      <p className="note body">Replayed from the issue history with today’s whose-move rule; the last point is now. Reopened and unassigned events are ignored. Dotted line: 28 d. Purple dashed line: the co-reviewer launched (Nov 14).</p>
     </section>
   );
 }
