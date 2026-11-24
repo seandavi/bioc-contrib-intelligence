@@ -3,6 +3,8 @@ import type { TrendPoint } from "./lib";
 type Line = { key: keyof TrendPoint; label: string; color: string; dash?: string };
 const W = 640, H = 200, L = 36, R = 8, T = 8, B = 22;
 const mon = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" });
+// Co-reviewer launch (git history: 4b163a2 + b99ad9a, co-reviewer and public URL).
+const MARKS = [{ t: "2026-11-14", label: "Co-reviewer" }];
 const day = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 
 // ponytail: hand-rolled SVG lines, no chart lib; add one if we need zoom or many series.
@@ -13,6 +15,9 @@ function Chart({ pts, lines, unit, refLine }: { pts: TrendPoint[]; lines: Line[]
   const max = Math.ceil((top || 1) / step) * step;
   const x = (i: number) => L + (i * (W - L - R)) / Math.max(1, pts.length - 1);
   const y = (v: number) => T + (H - T - B) * (1 - v / max);
+  const t0 = Date.parse(pts[0].t), t1 = Date.parse(pts[pts.length - 1].t);
+  const marks = MARKS.map((m) => ({ ...m, x: L + ((Date.parse(m.t) - t0) / (t1 - t0)) * (W - L - R) }))
+    .filter((m) => m.x >= L && m.x <= W - R);
   const ticks = Array.from({ length: Math.floor(max / step) + 1 }, (_, i) => i * step);
   const months = pts.map((p, i) => [i, new Date(p.t)] as const)
     .filter(([i, d]) => i === 0 || d.getUTCMonth() !== new Date(pts[i - 1].t).getUTCMonth());
@@ -28,6 +33,8 @@ function Chart({ pts, lines, unit, refLine }: { pts: TrendPoint[]; lines: Line[]
           <text x={L - 6} y={y(v) + 4} textAnchor="end">{v}</text></g>)}
         {months.map(([i, d]) => <text key={i} x={x(i)} y={H - 6} textAnchor="middle">{mon.format(d)}</text>)}
         {refLine != null && <line x1={L} x2={W - R} y1={y(refLine)} y2={y(refLine)} className="ref" />}
+        {marks.map((m, i) => <g key={m.t} className="mark"><line x1={m.x} x2={m.x} y1={T} y2={H - B} />
+          <text x={m.x - 3} y={T + 8 + i * 12} textAnchor="end">{m.label}</text></g>)}
         {lines.map((l) => <path key={l.key} d={path(l.key)} fill="none" stroke={l.color} strokeWidth={2} strokeDasharray={l.dash} />)}
         {pts.map((p, i) => (
           <rect key={i} x={x(i) - (W - L - R) / pts.length / 2} y={T} width={(W - L - R) / pts.length} height={H - T - B} className="hit">
@@ -60,7 +67,7 @@ export function Trends({ pts }: { pts: TrendPoint[] }) {
             { key: "p90_wait", label: "90th percentile", color: "var(--risk)", dash: "4 3" },
           ]} /></div>
       </div>
-      <p className="note body">Replayed from the issue history with today’s whose-move rule; the last point is now. Reopened and unassigned events are ignored. Dotted line: 28 d.</p>
+      <p className="note body">Replayed from the issue history with today’s whose-move rule; the last point is now. Reopened and unassigned events are ignored. Dotted line: 28 d. Purple dashed line: the co-reviewer launched (Nov 14).</p>
     </section>
   );
 }
