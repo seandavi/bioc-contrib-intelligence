@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { atRisk, band, deadlineAhead, type Data, days, explain, type Me, type QueueRow, short, sinceText } from "./lib";
 import { AiChips, Checks, Pkg, Wait } from "./parts";
-import { ThreadNote } from "./Queue";
+import { Trends } from "./Trend";
 
 const median = (a: number[]) => {
   if (!a.length) return null;
@@ -45,6 +45,7 @@ export function Overview({ data, me }: { data: Data; me: Me }) {
         “Whose move” and “no reviewer comment” count only comments by the assignee in the issue thread.
         Reviews done by someone else, or outside the thread, aren’t visible.
       </p>
+      <Trends pts={data.trend ?? []} />
       <Attention data={data} me={me} />
       <Load q={q} />
       <All data={data} me={me} />
@@ -66,36 +67,41 @@ function Attention({ data, me }: { data: Data; me: Me }) {
       rows: take(byWait.filter((r) => atRisk(r, me.deadline))) },
     { title: "Stale", desc: "Reviewer’s move for 29–60 d.", rows: take(byWait.filter((r) => band(days(r.waiting_since)) === "stale")) },
   ].filter((g) => g.rows.length || !g.title.startsWith("At risk"));
+  const un = data.unassigned.map((u) => (
+    <tr key={u.issue_number}>
+      <td><Pkg n={u.issue_number} name={u.title} sub={u.submitter} data={data} /></td>
+      <td><span className="tag tag-unassigned">Unassigned</span></td>
+      <td><Wait d={days(u.created_at)} /></td>
+      <td className="small muted">Opened {short(u.created_at)}</td>
+      <td><Checks info={data.issues[u.issue_number]} /></td>
+    </tr>
+  ));
+  const all = [{ title: "Unassigned", desc: "Waiting for a reviewer.", rows: un }, ...groups.map((g) => ({
+    ...g, rows: g.rows.map((r) => (
+      <tr key={r.issue_number}>
+        <td><Pkg n={r.issue_number} name={r.title} sub={r.submitter} data={data} /></td>
+        <td><a href={`#/r/${encodeURIComponent(r.reviewer)}`} className="mono">{r.reviewer}</a></td>
+        <td><Wait d={days(r.waiting_since)} /></td>
+        <td className="small muted">{explain(r, false)}</td>
+        <td><Checks info={data.issues[r.issue_number]} /></td>
+      </tr>
+    )),
+  }))];
   return (
     <section className="card" aria-label="Needs attention">
       <div className="head"><h2>Needs attention</h2><span className="small muted">Each submission appears once, under its most urgent reason</span></div>
-      <div className="body">
-        <h2>Unassigned<span className="count">{data.unassigned.length}</span></h2>
-        <ul className="why">
-          {data.unassigned.map((u) => (
-            <li key={u.issue_number}>
-              <a href={`#/i/${u.issue_number}`} className="mono">{data.issues[u.issue_number]?.package ?? u.title}</a> <span className="mono muted">#{u.issue_number} · {u.submitter}</span>{" "}
-              <Wait d={days(u.created_at)} /> <span className="small muted">opened {short(u.created_at)}</span>{" "}
-              <Checks info={data.issues[u.issue_number]} />
-            </li>
+      <div className="scroll">
+        <table>
+          <thead><tr><th>Package · submitter</th><th>Reviewer</th><th>Waiting</th><th>Why</th><th>Checks · latest build</th></tr></thead>
+          {all.map((g) => (
+            <tbody key={g.title}>
+              <tr className="group"><th colSpan={5}>{g.title} <span className="count">{g.rows.length}</span>
+                <span className="note">{g.desc}</span></th></tr>
+              {g.rows}
+            </tbody>
           ))}
-        </ul>
+        </table>
       </div>
-      {groups.map((g) => (
-        <div className="body" key={g.title}>
-          <h2>{g.title}<span className="count">{g.rows.length}</span></h2>
-          <p className="note">{g.desc}</p>
-          <ul className="why">
-            {g.rows.map((r) => (
-              <li key={r.issue_number}>
-                <a href={`#/i/${r.issue_number}`} className="mono">{data.issues[r.issue_number]?.package ?? r.title}</a> <span className="mono muted">#{r.issue_number}</span>{" "}
-                <a href={`#/r/${encodeURIComponent(r.reviewer)}`} className="mono">{r.reviewer}</a>{" "}
-                <Wait d={days(r.waiting_since)} /> <span className="small muted">{explain(r, false)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
     </section>
   );
 }
