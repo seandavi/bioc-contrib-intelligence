@@ -4,12 +4,14 @@ import { type AgentEnv, chat, MODELS } from "./agent";
 import { allowed, canSeeIssue, type Data, exchange, fresh, resolveUser, scope, seal, unseal, type User,
   withTokens } from "./auth";
 import { autoSteps, cleanEvent, parseChat } from "./guards";
+import { weekSpend } from "./spend";
 import { SKILLS } from "./skills";
 import { summary } from "./summary";
 import { rollup, type Turn, type UiEvent } from "./usage";
 
 type Env = AgentEnv & {
   CHAT_LIMIT?: RateLimit;
+  WEEKLY_CAP_USD?: string; // co-review $ per reviewer per rolling 7 days; admins exempt
   ASSETS: Fetcher;
   REPO: string;
   DEADLINE: string;
@@ -106,7 +108,7 @@ app.use("/api/*", async (c, next) => {
   else {
     const s = getCookie(c, COOKIE);
     const old = s ? await unseal(s, env.SESSION_SECRET) : null;
-    user = old && (await fresh(old, env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET));
+    user = old && (await fresh(old, env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET, env.REPO));
     if (user && user !== old) await setSession(c, user); // token was renewed
   }
   if (!user) return c.json({ error: "sign_in_required" }, 401);
@@ -162,6 +164,9 @@ app.post("/api/issues/:n{[0-9]+}/chat", async (c) => {
   // Cost guards: per-reviewer rate limit, and a cap on automatic client-tool resubmits per user message.
   if (c.env.CHAT_LIMIT && !(await c.env.CHAT_LIMIT.limit({ key: u.login })).success)
     return c.json({ error: "rate_limited", message: "Too many co-review requests; wait a minute." }, 429);
+  const cap = Number(c.env.WEEKLY_CAP_USD ?? 25);
+  if (!u.admin && (await weekSpend(c.env.DATA, u.login)) >= cap)
+    return c.json({ error: "weekly_cap", message: `You've used this week's co-review budget ($${cap} per reviewer). It frees up as turns older than 7 days age out.` }, 429);
   if (autoSteps(body.messages) > 12) return c.json({ error: "loop_limit", message: "Stopped: too many automatic steps for one message." }, 429);
   const thread = JSON.parse((await snapshot(c.env, `i/${n}.json`)) ?? "[]");
   return chat(c.env, u, data, n, thread, body, (p) => c.executionCtx.waitUntil(p), c.req.raw.signal);
