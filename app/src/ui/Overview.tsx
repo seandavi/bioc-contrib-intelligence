@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { atRisk, band, deadlineAhead, type Data, days, explain, type Me, type QueueRow, short, sinceText } from "./lib";
-import { AiChips, Checks, Pkg, Wait } from "./parts";
+import { Checks, Pkg, Wait } from "./parts";
 import { Trends } from "./Trend";
 
 const median = (a: number[]) => {
@@ -169,7 +169,7 @@ function All({ data, me }: { data: Data; me: Me }) {
       <div className="scroll">
         <table>
           <thead><tr><th>Package · submitter</th><th>Reviewer</th><th>Whose move</th><th>Stage</th><th>Waiting</th>
-            <th>Pushes · comments</th><th>Checks · latest build</th><th>AI review</th></tr></thead>
+            <th>Pushes · comments</th><th>Checks · latest build</th></tr></thead>
           <tbody>
             {rows.map((r) => (
               <tr key={`${r.issue_number}-${r.reviewer}`}>
@@ -181,7 +181,6 @@ function All({ data, me }: { data: Data; me: Me }) {
                   {atRisk(r, me.deadline) && <span className="tag tag-risk">⚠ At risk</span>}</div></td>
                 <td>{sinceText(r)}</td>
                 <td><Checks info={data.issues[r.issue_number]} /></td>
-                <td><AiChips /></td>
               </tr>
             ))}
           </tbody>

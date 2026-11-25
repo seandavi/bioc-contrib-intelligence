@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { atRisk, deadlineAhead, type Data, days, explain, type Me, type QueueRow, short, sinceText } from "./lib";
-import { AiChips, Checks, Pkg, Wait } from "./parts";
+import { Checks, Pkg, Wait } from "./parts";
 
 // My queue (spec §5.2), and an admin's read-only view of another reviewer's queue.
 export function Queue({ data, me, login }: { data: Data; me: Me; login: string }) {
@@ -75,7 +75,7 @@ function Section({ title, rows, data, me, you, open: initial }:
           <table>
             <thead><tr>
               <th>Package · submitter</th><th>Waiting</th><th>Since {you ? "your" : "their"} last comment</th>
-              <th>Checks · latest build</th><th>Stage</th><th>Last comment</th><th>AI review</th>
+              <th>Checks · latest build</th><th>Stage</th><th>Last comment</th>
             </tr></thead>
             <tbody>
               {rows.map((r) => {
@@ -92,7 +92,6 @@ function Section({ title, rows, data, me, you, open: initial }:
                     <td><Checks info={data.issues[r.issue_number]} /></td>
                     <td>{r.stage ?? "—"}<div className="small muted">{r.stage_since && `since ${short(r.stage_since)}`}</div></td>
                     <td><div className="clamp small">{r.last_comment ?? <span className="muted">No human comments yet</span>}</div></td>
-                    <td><AiChips /></td>
                   </tr>
                 );
               })}
