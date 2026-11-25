@@ -49,20 +49,6 @@ export function Differs({ info }: { info: IssueInfo }) {
   return <span className="tag tag-risk" title={t} aria-label={t}>↻ newer than issue</span>;
 }
 
-export const AXES: Array<[string, string]> = [
-  ["C", "Code"], ["D", "Documentation"], ["F", "Bioconductor vs CRAN fit"],
-  ["O", "Overlap with existing packages"], ["T", "Check triage"],
-];
-
-// ponytail: no review engine yet (#12), so every axis shows "not run".
-export function AiChips() {
-  return (
-    <div className="checks" aria-label="AI review: not run">
-      {AXES.map(([k, name]) => <span key={k} className="ax" title={`${name}: not run`}>{k}</span>)}
-    </div>
-  );
-}
-
 // Links open in a new tab (leaving would drop a running co-review turn).
 DOMPurify.addHook("afterSanitizeAttributes", (node) => {
   if (node.tagName === "A" && /^https?:/.test(node.getAttribute("href") ?? "")) { node.setAttribute("target", "_blank"); node.setAttribute("rel", "noopener noreferrer"); }

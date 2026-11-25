@@ -88,8 +88,6 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); }
 .tag-them { background: #fff; color: var(--text-2); border-color: var(--input-border); }
 .tag-risk { background: #fff; color: var(--risk); border-color: var(--risk); }
 .tag-unassigned, .tag-admin { background: var(--admin-tint); color: var(--admin-text); border-color: var(--admin-border); }
-.ax { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: var(--radius-chip);
-      border: 1px dashed var(--check-none-bd); color: var(--muted-2); font: 600 11px var(--font-mono); }
 
 /* Buttons and inputs */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 0 14px;
